@@ -7,8 +7,10 @@ function renderDashboard() {
   const now = new Date();
   const h   = now.getHours();
 
+  const cfg  = JSON.parse(localStorage.getItem('vtp_config') || '{}');
+  const nome = cfg.responsavel || 'Yuri';
   document.getElementById('dashGreeting').textContent =
-    `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, Yuri! 👋`;
+    `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, ${nome}! 👋`;
   document.getElementById('dashDate').textContent =
     now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -130,3 +132,7 @@ function renderDashboard() {
   const badge = document.getElementById('badge-estoque');
   if (badge) badge.textContent = crit || '';
 }
+
+// Atualiza badge sempre que dashboard renderiza
+const _origRenderDash = renderDashboard;
+function renderDashboard() { _origRenderDash(); if(typeof updatePrepBadge==='function') updatePrepBadge(); }

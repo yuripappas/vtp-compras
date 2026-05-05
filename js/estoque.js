@@ -37,7 +37,7 @@ function renderEstoque() {
 
   const tbody = document.getElementById('estoqueBody');
   if (!filt.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔍</div>Nada encontrado</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔍</div>Nada encontrado</div></td></tr>`;
     return;
   }
 
@@ -49,7 +49,12 @@ function renderEstoque() {
     const pct  = item.ideal <= 0 ? 0 : Math.min(100, Math.round(item.qty / item.ideal * 100));
     const rc   = s === 'crit' ? 'background:#FFF5F5' : s === 'warn' ? 'background:#FEFCE8' : '';
 
+    const needChk = need > 0;
     return `<tr style="${rc}" id="row-${item.id}">
+      <td class="c" style="width:36px">
+        <input type="checkbox" class="est-chk" value="${item.id}" ${needChk ? 'checked' : ''}
+          style="accent-color:var(--purple);width:15px;height:15px" title="Incluir na lista de compras">
+      </td>
       <td>
         <div class="iname">${item.name}</div>
         <div class="isub">${item.cat}${item.code ? ' · #' + item.code : ''}</div>
@@ -219,6 +224,20 @@ function confirmarSazonal() {
 }
 
 function iniciarCompras() { goModule('compras'); }
+
+function goToCompras() {
+  // Coleta itens selecionados (com checkbox marcado) na tela de estoque
+  const checked = [...document.querySelectorAll('.est-chk:checked')].map(c => parseInt(c.value));
+  
+  if (checked.length > 0) {
+    // Salva seleção para compras usar no step 1
+    localStorage.setItem('vtp_estoque_sel', JSON.stringify(checked));
+  } else {
+    // Se nenhum selecionado, limpa para carregar padrão
+    localStorage.removeItem('vtp_estoque_sel');
+  }
+  goModule('compras');
+}
 
 // ── Importação CSV com deduplicação por CÓDIGO ──
 function openImportModal() {

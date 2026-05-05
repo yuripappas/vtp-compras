@@ -99,6 +99,7 @@ function renderPreproducao() {
       </div>
     </div>`;
   }).join('');
+  updatePrepBadge();
 }
 
 function clearPrepFiltro() {
@@ -385,10 +386,12 @@ function renderFornecedores() {
 function openSupModal() {
   editSupId = null;
   document.getElementById('supModalTitle').textContent = 'Novo Fornecedor';
-  ['sfName','sfSeller','sfPhone','sfEmail','sfCats'].forEach(id => document.getElementById(id).value = '');
+  ['sfName','sfSeller','sfPhone','sfEmail'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('eSupId').value = '';
   document.getElementById('delSupBtn').style.display = 'none';
+  const srch = document.getElementById('sfItemSearch'); if(srch) srch.value = '';
   renderSupCbx([]);
+  renderCatTags([]);
   document.getElementById('ovSup').classList.add('open');
   setTimeout(() => document.getElementById('sfName').focus(), 80);
 }
@@ -402,35 +405,106 @@ function openEditSup(id) {
   document.getElementById('sfSeller').value = s.seller || '';
   document.getElementById('sfPhone').value  = s.phone  || '';
   document.getElementById('sfEmail').value  = s.email  || '';
-  document.getElementById('sfCats').value   = s.cats   || '';
   document.getElementById('eSupId').value   = id;
   document.getElementById('delSupBtn').style.display = 'inline-flex';
+  const srch = document.getElementById('sfItemSearch'); if(srch) srch.value = '';
   renderSupCbx(items.filter(i => i.supId === id).map(i => i.id));
+  // Carrega categorias salvas como array
+  const cats = Array.isArray(s.cats) ? s.cats : (s.cats ? s.cats.split(',').map(c => c.trim()).filter(Boolean) : []);
+  renderCatTags(cats);
   document.getElementById('ovSup').classList.add('open');
 }
 
-function renderSupCbx(linked) {
-  document.getElementById('sfItems').innerHTML = [...items]
+function renderSupCbx(linked, q) {
+  // Preserva checkeds existentes se já renderizado
+  const existingChecked = [...(document.querySelectorAll('#sfItems input:checked') || [])].map(c => parseInt(c.value));
+  const allLinked = [...new Set([...linked, ...existingChecked])];
+
+  const query = (q !== undefined ? q : (document.getElementById('sfItemSearch')?.value || '')).toLowerCase().trim();
+
+  const insumos = [...items]
     .filter(i => !i.isProd)
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map(i => `
-      <label style="display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:var(--r6);cursor:pointer;font-size:.77rem;background:var(--surface);border:1.5px solid var(--border)">
-        <input type="checkbox" value="${i.id}" ${linked.includes(i.id) ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--purple)">
-        ${i.name}
-        <span class="badge b-gray" style="font-size:.58rem;margin-left:auto">${i.cat}</span>
-      </label>`).join('');
+    .filter(i => !query || i.name.toLowerCase().includes(query) || i.cat.toLowerCase().includes(query))
+    .sort((a, b) => a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name));
+
+  // Agrupa por categoria
+  const byCat = {};
+  insumos.forEach(i => { if (!byCat[i.cat]) byCat[i.cat] = []; byCat[i.cat].push(i); });
+
+  const el = document.getElementById('sfItems');
+  if (!insumos.length) {
+    el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:.75rem">Nenhum insumo encontrado</div>`;
+    return;
+  }
+
+  el.innerHTML = Object.entries(byCat).map(([cat, catItems]) => `
+    <div style="margin-bottom:8px">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:4px 8px 4px 0;margin-bottom:3px">${cat}</div>
+      ${catItems.map(i => {
+        const isChecked = allLinked.includes(i.id);
+        return `<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r6);cursor:pointer;font-size:.78rem;border:1.5px solid ${isChecked ? 'var(--purple-light)' : 'var(--border)'};background:${isChecked ? 'var(--purple-xlight)' : 'var(--surface)'};margin-bottom:3px;transition:all .1s" onmouseover="this.style.borderColor='var(--purple-light)'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--border)'">
+          <input type="checkbox" value="${i.id}" ${isChecked ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--purple);flex-shrink:0"
+            onchange="this.closest('label').style.borderColor=this.checked?'var(--purple-light)':'var(--border)';this.closest('label').style.background=this.checked?'var(--purple-xlight)':'var(--surface)'">
+          <span style="flex:1">${query ? i.name.replace(new RegExp(query,'gi'), m => `<mark style="background:var(--yellow-light);border-radius:2px;padding:0 1px">${m}</mark>`) : i.name}</span>
+          ${i.code ? `<span style="font-size:.58rem;color:var(--muted);font-family:monospace">#${i.code}</span>` : ''}
+        </label>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+function filterSupItems() {
+  const linked = [...document.querySelectorAll('#sfItems input:checked')].map(c => parseInt(c.value));
+  renderSupCbx(linked);
+}
+
+
+// Categorias pré-definidas para fornecedores
+const SUP_CATS = ['Laticínios','Massas','Carnes e Frios','Embalagens','Molhos','Produção Interna','Bebidas','Higiene/Limpeza','Descartáveis','Outros'];
+
+function renderCatTags(selected) {
+  const wrap = document.getElementById('sfCatsWrap');
+  if (!wrap) return;
+  wrap.innerHTML = SUP_CATS.map(cat => {
+    const active = selected.includes(cat);
+    return `<span class="sup-cat-tag${active ? ' active' : ''}" data-cat="${cat}"
+      style="padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;cursor:pointer;border:1.5px solid ${active ? 'var(--purple)' : 'var(--border)'};background:${active ? 'var(--purple)' : 'var(--surface)'};color:${active ? '#fff' : 'var(--text2)'};transition:all .15s;user-select:none"
+      onclick="toggleCatTag(this)">${cat}</span>`;
+  }).join('');
+}
+
+function toggleCatTag(el) {
+  el.classList.toggle('active');
+  const isActive = el.classList.contains('active');
+  el.style.background   = isActive ? 'var(--purple)' : 'var(--surface)';
+  el.style.borderColor  = isActive ? 'var(--purple)' : 'var(--border)';
+  el.style.color        = isActive ? '#fff' : 'var(--text2)';
+}
+
+// Badge críticos na sidebar de pré-produção
+function updatePrepBadge() {
+  const badge = document.getElementById('prepBadge');
+  if (!badge) return;
+  const crits = items.filter(i => i.isProd && gst(i) === 'crit').length;
+  if (crits > 0) {
+    badge.textContent = crits;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 function saveSup() {
   const name = document.getElementById('sfName').value.trim();
   if (!name) { toast('Informe o nome', 'err'); return; }
   const checked = [...document.querySelectorAll('#sfItems input:checked')].map(c => parseInt(c.value));
+  // Pega categorias das tags selecionadas
+  const selectedCats = [...document.querySelectorAll('.sup-cat-tag.active')].map(t => t.dataset.cat);
   const data = {
     name,
     seller: document.getElementById('sfSeller').value.trim(),
     phone:  document.getElementById('sfPhone').value.trim(),
     email:  document.getElementById('sfEmail').value.trim(),
-    cats:   document.getElementById('sfCats').value.trim(),
+    cats:   selectedCats.join(', '),
   };
   if (editSupId) {
     const idx = suppliers.findIndex(s => s.id === editSupId);
@@ -585,7 +659,7 @@ function openEditUser(id) {
 function renderPermPreview() {
   const role = document.getElementById('fuRole')?.value || 'comprador';
   const p    = PERMS[role];
-  const all  = ['Ver Dashboard','Estoque','Pré-produção','Compras','Aprovação de compras','Fornecedores','Relatórios','Gerenciar usuários','Configurações'];
+  const all  = ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios','Gerenciar usuários','Configurações'];
   document.getElementById('permPreview').innerHTML = all.map(perm => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.79rem">
       <span>${perm}</span>

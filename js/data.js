@@ -75,11 +75,11 @@ const saveCH = () => localStorage.setItem('vtp_cycle_history', JSON.stringify(cy
 const PERMS = {
   gerente: {
     label: '👑 Gerente', color: '#6B21D4', bg: '#EDE9FE',
-    perms: ['Ver Dashboard','Estoque','Pré-produção','Compras','Aprovação de compras','Fornecedores','Relatórios','Gerenciar usuários','Configurações']
+    perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios','Gerenciar usuários','Configurações']
   },
   supervisor: {
     label: '🔑 Supervisor', color: '#D97706', bg: '#FEF3C7',
-    perms: ['Ver Dashboard','Estoque','Pré-produção','Compras','Aprovação de compras','Fornecedores','Relatórios','Configurações']
+    perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios']
   },
   comprador: {
     label: '🛒 Comprador', color: '#16A34A', bg: '#DCFCE7',

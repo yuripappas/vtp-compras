@@ -233,7 +233,7 @@ function openPreparoModal() {
   editPreparoId = null;
   document.getElementById('preparoModalTitle').textContent = 'Novo Preparado';
   document.getElementById('ePreparoId').value = '';
-  ['fpName','fpCost','fpMin','fpIdeal','fpPorcao','fpObs'].forEach(id => document.getElementById(id).value = '');
+  ['fpName','fpCode','fpCost','fpMin','fpIdeal','fpPorcao','fpObs'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fpUnit').value = 'kg';
   document.getElementById('delPreparoBtn').style.display = 'none';
   document.getElementById('ovPreparo').classList.add('open');
@@ -246,6 +246,7 @@ function openEditPreparo(id) {
   editPreparoId = id;
   document.getElementById('preparoModalTitle').textContent = `✏️ ${item.name}`;
   document.getElementById('fpName').value   = item.name;
+  document.getElementById('fpCode').value   = item.code  || '';
   document.getElementById('fpUnit').value   = item.unit;
   document.getElementById('fpCost').value   = item.cost;
   document.getElementById('fpMin').value    = item.min;
@@ -261,6 +262,7 @@ function savePreparo() {
   if (!name) { toast('Informe o nome', 'err'); return; }
   const data = {
     name,
+    code:      document.getElementById('fpCode').value.trim(),
     cat:       'Produção Interna',
     unit:      document.getElementById('fpUnit').value,
     cost:      parseFloat(document.getElementById('fpCost').value)   || 0,
@@ -362,16 +364,38 @@ function openEditSup(id) {
   document.getElementById('ovSup').classList.add('open');
 }
 
-function renderSupCbx(linked) {
-  document.getElementById('sfItems').innerHTML = [...items]
+function renderSupCbx(linked, searchQ) {
+  const q = (searchQ || document.getElementById('sfItemSearch')?.value || '').toLowerCase();
+  const filt = [...items]
     .filter(i => !i.isProd)
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map(i => `
-      <label style="display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:var(--r6);cursor:pointer;font-size:.77rem;background:var(--surface);border:1.5px solid var(--border)">
-        <input type="checkbox" value="${i.id}" ${linked.includes(i.id) ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--purple)">
-        ${i.name}
-        <span class="badge b-gray" style="font-size:.58rem;margin-left:auto">${i.cat}</span>
-      </label>`).join('');
+    .filter(i => !q || i.name.toLowerCase().includes(q) || i.cat.toLowerCase().includes(q))
+    .sort((a, b) => a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name));
+
+  const el = document.getElementById('sfItems');
+  if (!filt.length) {
+    el.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:.75rem;padding:12px">Nenhum insumo encontrado</div>`;
+    return;
+  }
+
+  // Agrupa por categoria
+  const byCat = {};
+  filt.forEach(i => { if (!byCat[i.cat]) byCat[i.cat] = []; byCat[i.cat].push(i); });
+
+  el.innerHTML = Object.entries(byCat).map(([cat, catItems]) => `
+    <div style="margin-bottom:6px">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:4px 6px">${cat}</div>
+      ${catItems.map(i => `
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r6);cursor:pointer;font-size:.77rem;background:var(--surface);border:1.5px solid ${linked.includes(i.id) ? 'var(--purple-light)' : 'var(--border)'};margin-bottom:3px;transition:all .1s">
+          <input type="checkbox" value="${i.id}" ${linked.includes(i.id) ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--purple)" onchange="this.closest('label').style.borderColor=this.checked?'var(--purple-light)':'var(--border)';this.closest('label').style.background=this.checked?'var(--purple-xlight)':'var(--surface)'">
+          <span style="flex:1">${i.name}</span>
+          ${i.code ? `<span style="font-size:.58rem;color:var(--muted);font-family:monospace">#${i.code}</span>` : ''}
+        </label>`).join('')}
+    </div>`).join('');
+}
+
+function filterSupItems() {
+  const linked = [...document.querySelectorAll('#sfItems input:checked')].map(c => parseInt(c.value));
+  renderSupCbx(linked);
 }
 
 function saveSup() {

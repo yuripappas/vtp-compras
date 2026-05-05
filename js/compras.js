@@ -31,7 +31,18 @@ function goStep(n) {
 // ── STEP 1: Itens para compra ──
 let _buyFilter = { cat: '', status: 'need', search: '' };
 
+// Seleção vinda do estoque (se existir)
+function _getEstSel() {
+  try { return JSON.parse(localStorage.getItem('vtp_estoque_sel') || 'null'); } catch { return null; }
+}
+
 function renderBuyItems() {
+  // Se veio seleção do estoque, aplica e limpa
+  const estSel = _getEstSel();
+  if (estSel && estSel.length > 0) {
+    localStorage.removeItem('vtp_estoque_sel');
+    _buyFilter.status = 'all'; // mostra todos para poder ver o que foi selecionado
+  }
   const insumos = items.filter(i => !i.isProd && i.ideal > 0);
 
   // Popula filtro de categoria
@@ -84,8 +95,9 @@ function renderBuyItems() {
       const b    = (item.brands || []).filter(x => x);
       const need = gneed(item);
       const s    = gst(item);
+      const isChecked = estSel ? estSel.includes(item.id) : true;
       return `<tr>
-        <td class="c"><input type="checkbox" class="buy-chk" value="${item.id}" checked
+        <td class="c"><input type="checkbox" class="buy-chk" value="${item.id}" ${isChecked ? 'checked' : ''}
           style="accent-color:var(--purple);width:15px;height:15px" onchange="_updateBuyCounter()"></td>
         <td>
           <div class="iname">${item.name}</div>
