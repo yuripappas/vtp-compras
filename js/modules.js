@@ -168,7 +168,8 @@ function generatePDF() {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;color:#1a0a2e;background:#fff;padding:24px}
     .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #6B21D4;padding-bottom:14px;margin-bottom:20px}
-    .logo-box{width:48px;height:48px;background:#6B21D4;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+    .logo-box{width:56px;height:56px;display:flex;align-items:center;justify-content:center}
+    .logo-box img{width:56px;height:56px;object-fit:contain}
     .logo-text{font-size:1.1rem;font-weight:800;color:#6B21D4}
     .logo-sub{font-size:.72rem;color:#9B91B8;margin-top:2px}
     .header-right{text-align:right;font-size:.72rem;color:#9B91B8}
@@ -488,14 +489,23 @@ function saveUser() {
   const name  = document.getElementById('fuName').value.trim();
   const email = document.getElementById('fuEmail').value.trim();
   const role  = document.getElementById('fuRole').value;
+  const pass  = document.getElementById('fuPass').value;
   if (!name || !email) { toast('Preencha nome e e-mail', 'err'); return; }
   if (editUserId) {
     const idx = users.findIndex(u => u.id === editUserId);
     if (idx >= 0) users[idx] = { ...users[idx], name, email, role };
+    // Atualiza senha se foi preenchida
+    if (pass) {
+      if (pass.length < 6) { toast('Senha deve ter pelo menos 6 caracteres', 'err'); return; }
+      localStorage.setItem(`vtp_pass_${editUserId}`, pass);
+    }
     toast(`✅ "${name}" atualizado!`);
   } else {
     if (users.find(u => u.email === email)) { toast('E-mail já cadastrado', 'err'); return; }
-    users.push({ id: nextUid++, name, email, role, active: true });
+    if (!pass || pass.length < 6) { toast('Defina uma senha de pelo menos 6 caracteres', 'err'); return; }
+    const newId = nextUid++;
+    users.push({ id: newId, name, email, role, active: true });
+    localStorage.setItem(`vtp_pass_${newId}`, pass);
     toast(`✅ "${name}" criado!`);
   }
   saveU();

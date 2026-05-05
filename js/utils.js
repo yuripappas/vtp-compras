@@ -51,6 +51,11 @@ const modInfo = {
 };
 
 function goModule(mod) {
+  // Verifica permissão
+  if (typeof canAccess === 'function' && !canAccess(mod)) {
+    toast('Acesso não permitido para seu perfil', 'err');
+    return;
+  }
   document.querySelectorAll('.sb-item').forEach(e => e.classList.remove('active'));
   document.getElementById(`nav-${mod}`)?.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
