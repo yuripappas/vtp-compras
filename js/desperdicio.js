@@ -312,15 +312,34 @@ function saveDesp() {
   // Resolve item/produto e custo
   let itemId = null, prodId = null, nome = '', unidade = '', custo = 0, d_extra = {};
 
-  if (rawId.startsWith('p_')) {
-    // Produto (pizza/bebida) — custo = preço de venda
+  if (rawId.startsWith('pt_')) {
+    // Pizza com tipo e sabores
+    const tipoId = rawId.replace('pt_', '');
+    const tipo   = PIZZA_TIPOS.find(t => t.id === tipoId);
+    if (!tipo) { toast('Tipo de pizza não encontrado', 'err'); return; }
+    const sab1Id = parseInt(document.getElementById('fdSabor1')?.value);
+    const sab2Id = parseInt(document.getElementById('fdSabor2')?.value);
+    const sab1   = sabores.find(s => s.id === sab1Id);
+    const sab2   = tipo.grande ? sabores.find(s => s.id === sab2Id) : null;
+    if (!sab1) { toast('Selecione o sabor da pizza', 'err'); return; }
+    if (tipo.grande && !sab2) { toast('Selecione o 2º sabor da pizza grande', 'err'); return; }
+    const precoTotal = tipo.basePrice + (sab1?.acr || 0) + (sab2?.acr || 0);
+    const sabDesc    = tipo.grande && sab2 ? sab1.name + ' + ' + sab2.name : sab1.name;
+    nome    = tipo.label + ' · ' + sabDesc;
+    unidade = 'un';
+    custo   = precoTotal * qty;
+    d_extra = { tipoId, sab1Id, sab2Id: sab2?.id || null, precoUnitario: precoTotal, sabDesc };
+
+  } else if (rawId.startsWith('p_')) {
+    // Produto avulso (bebida etc)
     prodId = parseInt(rawId.slice(2));
     const prod = (typeof produtos !== 'undefined' ? produtos : []).find(p => p.id === prodId);
     if (!prod) { toast('Produto não encontrado', 'err'); return; }
     nome    = prod.name;
     unidade = 'un';
     custo   = prod.price * qty;
-  } else {
+
+  } else if (rawId.startsWith('i_')) {
     // Insumo ou Preparado
     itemId = parseInt(rawId.slice(2));
     const item = items.find(i => i.id === itemId);
@@ -328,6 +347,9 @@ function saveDesp() {
     nome    = item.name;
     unidade = item.unit;
     custo   = (item.cost || 0) * qty;
+
+  } else {
+    toast('Item inválido', 'err'); return;
   }
 
   const d = {
