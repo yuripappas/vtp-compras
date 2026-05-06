@@ -59,6 +59,88 @@ let sidebarOpen    = false;
 // PERSISTÊNCIA
 // ══════════════════════════════════════════════════════════════
 
+// Tipos de pizza (base)
+const PIZZA_TIPOS = [
+  { id:'pq_sal', label:'Pizza Pequena Salgada', basePrice:34.90, cat:'pq_sal', grande:false },
+  { id:'gr_sal', label:'Pizza Grande Salgada',  basePrice:50.90, cat:'gr_sal', grande:true  },
+  { id:'pq_doc', label:'Pizza Pequena Doce',    basePrice:34.90, cat:'pq_doc', grande:false },
+  { id:'gr_doc', label:'Pizza Grande Doce',     basePrice:49.90, cat:'gr_doc', grande:true  },
+];
+
+// Sabores com acréscimo por categoria
+let sabores = JSON.parse(localStorage.getItem('vtp_sabores') || 'null') || [
+  // Pizza Pequena Salgada
+  { id:1,  tipo:'pq_sal', name:'Mussarela',                    acr:0.00,  active:true },
+  { id:2,  tipo:'pq_sal', name:'Milho Verde',                  acr:0.00,  active:true },
+  { id:3,  tipo:'pq_sal', name:'Marguerita',                   acr:1.00,  active:true },
+  { id:4,  tipo:'pq_sal', name:'Queijo e Presunto',            acr:1.00,  active:true },
+  { id:5,  tipo:'pq_sal', name:'Calabresa',                    acr:1.00,  active:true },
+  { id:6,  tipo:'pq_sal', name:'Frango Caipira',               acr:5.00,  active:true },
+  { id:7,  tipo:'pq_sal', name:'Lombinho',                     acr:5.00,  active:true },
+  { id:8,  tipo:'pq_sal', name:'Americana',                    acr:6.00,  active:true },
+  { id:9,  tipo:'pq_sal', name:'Catupirella',                  acr:7.00,  active:true },
+  { id:10, tipo:'pq_sal', name:'Frango Catupiry',              acr:7.00,  active:true },
+  { id:11, tipo:'pq_sal', name:'Quatro Queijos',               acr:7.00,  active:true },
+  { id:12, tipo:'pq_sal', name:'Lombinho Cremoso',             acr:7.00,  active:true },
+  { id:13, tipo:'pq_sal', name:'Portuguesa',                   acr:8.00,  active:true },
+  { id:14, tipo:'pq_sal', name:'Frango com Bacon',             acr:8.00,  active:true },
+  { id:15, tipo:'pq_sal', name:'Carne de Sol na Nata',         acr:14.00, active:true },
+  { id:16, tipo:'pq_sal', name:'Filé ao Gorgonzola',          acr:14.00, active:true },
+  { id:17, tipo:'pq_sal', name:'Carne de Sol Nordestina',      acr:15.00, active:true },
+  { id:18, tipo:'pq_sal', name:'Filé, Cream Cheese e Barbecue de Goiabada', acr:15.00, active:true },
+  { id:19, tipo:'pq_sal', name:'Filé ao Alho',                acr:17.00, active:true },
+  { id:20, tipo:'pq_sal', name:'Costela Queijuda',             acr:19.00, active:true },
+  { id:21, tipo:'pq_sal', name:'Costela, Cream Cheese e Barbecue de Goiabada', acr:20.00, active:true },
+  // Pizza Grande Salgada (preços = acréscimo por 1/2)
+  { id:22, tipo:'gr_sal', name:'1/2 Mussarela',               acr:0.00,  active:true },
+  { id:23, tipo:'gr_sal', name:'1/2 Milho Verde',             acr:0.00,  active:true },
+  { id:24, tipo:'gr_sal', name:'1/2 Marguerita',              acr:0.00,  active:true },
+  { id:25, tipo:'gr_sal', name:'1/2 Queijo e Presunto',       acr:0.00,  active:true },
+  { id:26, tipo:'gr_sal', name:'1/2 Calabresa',               acr:0.00,  active:true },
+  { id:27, tipo:'gr_sal', name:'1/2 Lombinho',                acr:3.50,  active:true },
+  { id:28, tipo:'gr_sal', name:'1/2 Frango Caipira',          acr:4.00,  active:true },
+  { id:29, tipo:'gr_sal', name:'1/2 Americana',               acr:4.00,  active:true },
+  { id:30, tipo:'gr_sal', name:'1/2 Portuguesa',              acr:6.50,  active:true },
+  { id:31, tipo:'gr_sal', name:'1/2 Frango com Bacon',        acr:6.50,  active:true },
+  { id:32, tipo:'gr_sal', name:'1/2 Lombinho Cremoso',        acr:7.00,  active:true },
+  { id:33, tipo:'gr_sal', name:'1/2 Frango Catupiry',         acr:7.50,  active:true },
+  { id:34, tipo:'gr_sal', name:'1/2 Catupirella',             acr:7.50,  active:true },
+  { id:35, tipo:'gr_sal', name:'1/2 Quatro Queijos',          acr:8.00,  active:true },
+  { id:36, tipo:'gr_sal', name:'1/2 Carne de Sol na Nata',    acr:8.50,  active:true },
+  { id:37, tipo:'gr_sal', name:'1/2 Filé ao Gorgonzola',     acr:8.50,  active:true },
+  { id:38, tipo:'gr_sal', name:'1/2 Filé, Cream Cheese e Barbecue', acr:9.00, active:true },
+  { id:39, tipo:'gr_sal', name:'1/2 Filé ao Alho',            acr:9.50,  active:true },
+  { id:40, tipo:'gr_sal', name:'1/2 Costela, Cream Cheese e Barbecue', acr:12.50, active:true },
+  { id:41, tipo:'gr_sal', name:'1/2 Carne de Sol Nordestina', acr:13.00, active:true },
+  { id:42, tipo:'gr_sal', name:'1/2 Costela Queijuda',        acr:13.00, active:true },
+  // Pizza Pequena Doce
+  { id:43, tipo:'pq_doc', name:'Cartola',                     acr:0.00,  active:true },
+  { id:44, tipo:'pq_doc', name:'Leite Ninho com Nutella',     acr:0.00,  active:true },
+  { id:45, tipo:'pq_doc', name:'Romeu e Julieta',             acr:0.00,  active:true },
+  { id:46, tipo:'pq_doc', name:'Brigadeiro',                  acr:0.00,  active:true },
+  { id:47, tipo:'pq_doc', name:"M&M's",                      acr:4.00,  active:true },
+  { id:48, tipo:'pq_doc', name:'Nutella',                     acr:4.00,  active:true },
+  { id:49, tipo:'pq_doc', name:'Banana Nevada',               acr:4.00,  active:true },
+  { id:50, tipo:'pq_doc', name:'Sonho de Valsa',              acr:4.00,  active:true },
+  { id:51, tipo:'pq_doc', name:'Cheesecake de Morango',       acr:9.00,  active:true },
+  // Pizza Grande Doce (1/2)
+  { id:52, tipo:'gr_doc', name:'1/2 Cartola',                 acr:0.00,  active:true },
+  { id:53, tipo:'gr_doc', name:'1/2 Romeu e Julieta',         acr:0.50,  active:true },
+  { id:54, tipo:'gr_doc', name:'1/2 Brigadeiro',              acr:0.50,  active:true },
+  { id:55, tipo:'gr_doc', name:'1/2 Leite Ninho com Nutella', acr:0.50,  active:true },
+  { id:56, tipo:'gr_doc', name:"1/2 M&M's",                  acr:2.50,  active:true },
+  { id:57, tipo:'gr_doc', name:'1/2 Banana Nevada',           acr:2.50,  active:true },
+  { id:58, tipo:'gr_doc', name:'1/2 Sonho de Valsa',          acr:5.00,  active:true },
+  { id:59, tipo:'gr_doc', name:'1/2 Nutella',                 acr:5.50,  active:true },
+  { id:60, tipo:'gr_doc', name:'1/2 Cheesecake de Morango',   acr:8.00,  active:true },
+];
+let nextSabId = Math.max(...sabores.map(s => s.id), 0) + 1;
+
+let produtos = JSON.parse(localStorage.getItem('vtp_produtos') || '[]');
+let nextPid  = Math.max(...(produtos.length ? produtos.map(p => p.id) : [0]), 0) + 1;
+
+const saveP    = () => localStorage.setItem('vtp_produtos', JSON.stringify(produtos));
+const saveSab  = () => localStorage.setItem('vtp_sabores',  JSON.stringify(sabores));
 const saveI  = () => localStorage.setItem('vtp_items',         JSON.stringify(items));
 const saveS  = () => localStorage.setItem('vtp_suppliers',     JSON.stringify(suppliers));
 const saveU  = () => localStorage.setItem('vtp_users',         JSON.stringify(users));

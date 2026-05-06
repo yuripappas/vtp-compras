@@ -111,17 +111,23 @@ function renderDesperdicio() {
   document.getElementById('despLista').innerHTML = filt.length
     ? `<div style="display:flex;flex-direction:column;gap:8px">
         ${filt.slice().reverse().map(d => {
-          const item  = items.find(i => i.id === d.itemId);
+          // Suporta registros novos (d.nome) e antigos (d.itemId)
+          const item  = d.itemId ? items.find(i => i.id === d.itemId) : null;
+          const prod  = d.prodId ? (typeof produtos !== 'undefined' ? produtos : []).find(p => p.id === d.prodId) : null;
+          const nome  = d.nome || item?.name || '—';
+          const unit  = d.unidade || item?.unit || '';
+          const custo = d.custo !== undefined ? d.custo : (item?.cost || 0) * d.qty;
           const tipo  = TIPOS_DESPERDICIO.find(t => t.id === d.tipo);
-          const custo = (item?.cost || 0) * d.qty;
+          const origemBadge = d.origem === 'produto' ? '🍕 Produto' : d.origem === 'preparado' ? '🍳 Preparado' : '📦 Insumo';
           return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r10)">
             <div style="width:36px;height:36px;border-radius:var(--r8);background:${tipo?.bg || 'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${tipo?.icon || '📦'}</div>
             <div style="flex:1">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
-                <span style="font-size:.83rem;font-weight:700">${item?.name || '—'}</span>
+                <span style="font-size:.83rem;font-weight:700">${nome}</span>
+                <span class="badge b-gray" style="font-size:.58rem">${origemBadge}</span>
                 <span class="badge" style="background:${tipo?.bg};color:${tipo?.color};font-size:.6rem">${tipo?.label || d.tipo}</span>
               </div>
-              <div style="font-size:.7rem;color:var(--muted)">${fmtD(d.date)} · ${d.qty} ${item?.unit || ''} · Custo: R$ ${fmt(custo)}</div>
+              <div style="font-size:.7rem;color:var(--muted)">${fmtD(d.date)} · ${d.qty} ${unit} · Custo: R$ ${fmt(custo)}</div>
               ${d.resp ? `<div style="font-size:.7rem;color:var(--muted)">Resp.: ${d.resp}</div>` : ''}
               ${d.obs ? `<div style="font-size:.72rem;color:var(--text2);margin-top:4px;font-style:italic">"${d.obs}"</div>` : ''}
             </div>
@@ -141,58 +147,204 @@ let _editDespId = null;
 function openDespModal() {
   _editDespId = null;
   document.getElementById('despModalTitle').textContent = 'Registrar Desperdício';
-  document.getElementById('fdItemId').value   = '';
-  document.getElementById('fdQty').value      = '';
-  document.getElementById('fdObs').value      = '';
-  document.getElementById('fdResp').value     = '';
-  document.getElementById('fdDate').value     = new Date().toISOString().slice(0, 10);
-  document.getElementById('fdTipo').value     = 'preproducao';
+  document.getElementById('fdQty').value   = '';
+  document.getElementById('fdObs').value   = '';
+  document.getElementById('fdResp').value  = '';
+  document.getElementById('fdDate').value  = new Date().toISOString().slice(0, 10);
+  document.getElementById('fdTipo').value  = 'preproducao';
   document.getElementById('delDespBtn').style.display = 'none';
 
-  // Popula select de insumos (todos, incluindo produção interna)
-  document.getElementById('fdItemId').innerHTML =
-    '<option value="">Selecionar insumo...</option>' +
-    [...items].sort((a, b) => a.name.localeCompare(b.name))
-      .map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
+  // Seta origem padrão e popula lista
+  document.getElementById('fdOrigem').value = 'insumo';
+  updateDespOrigemList();
 
   document.getElementById('ovDesp').classList.add('open');
-  setTimeout(() => document.getElementById('fdItemId').focus(), 80);
+  setTimeout(() => document.getElementById('fdOrigem').focus(), 80);
+}
+
+function setDespOrigem(origem) {
+  document.getElementById('fdOrigem').value = origem;
+  // Update button styles
+  ['insumo','preparado','produto'].forEach(o => {
+    const btn = document.getElementById('orig-btn-' + o);
+    if (!btn) return;
+    const active = o === origem;
+    btn.style.background  = active ? 'var(--purple)' : 'var(--surface)';
+    btn.style.borderColor = active ? 'var(--purple)' : 'var(--border)';
+    btn.style.color       = active ? '#fff' : 'var(--text2)';
+  });
+  // Update note
+  const notes = {
+    insumo:    '📦 Insumos de compras — quantidade debitada do estoque automaticamente',
+    preparado: '🍳 Preparados de produção — quantidade debitada do estoque automaticamente',
+    produto:   '🍕 Produto final (pizza/bebida) — custo = preço de venda',
+  };
+  const noteEl = document.getElementById('origemNote');
+  if (noteEl) noteEl.textContent = notes[origem] || '';
+  updateDespOrigemList();
+}
+
+function updateDespOrigemList() {
+  const origem    = document.getElementById('fdOrigem').value;
+  const sel       = document.getElementById('fdItemId');
+  const qtyLabel  = document.getElementById('fdQtyLabel');
+  const pizzaArea = document.getElementById('fdPizzaArea');
+
+  sel.innerHTML = '<option value="">Selecionar...</option>';
+  if (pizzaArea) pizzaArea.style.display = 'none';
+
+  if (origem === 'insumo') {
+    [...items].filter(i => !i.isProd)
+      .sort((a, b) => a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name))
+      .forEach(i => {
+        sel.innerHTML += `<option value="i_${i.id}">[${i.cat}] ${i.name} (${i.unit})</option>`;
+      });
+    if (qtyLabel) qtyLabel.textContent = 'Insumo *';
+
+  } else if (origem === 'preparado') {
+    [...items].filter(i => i.isProd)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach(i => {
+        sel.innerHTML += `<option value="i_${i.id}">[Preparado] ${i.name} (${i.unit})</option>`;
+      });
+    if (qtyLabel) qtyLabel.textContent = 'Preparado *';
+
+  } else if (origem === 'produto') {
+    // Pizza: seleciona tipo primeiro, depois sabores
+    if (qtyLabel) qtyLabel.textContent = 'Tipo de pizza *';
+    PIZZA_TIPOS.forEach(t => {
+      sel.innerHTML += `<option value="pt_${t.id}">${t.label} — base R$${fmt(t.basePrice)}</option>`;
+    });
+    // Também mostra outros produtos (bebidas etc)
+    const prods = typeof produtos !== 'undefined' ? produtos : [];
+    prods.filter(p => p.active !== false)
+      .sort((a,b) => a.name.localeCompare(b.name))
+      .forEach(p => {
+        sel.innerHTML += `<option value="p_${p.id}">[Outro] ${p.name} — R$${fmt(p.price)}</option>`;
+      });
+    if (pizzaArea) pizzaArea.style.display = 'none';
+  }
+}
+
+function onDespItemChange() {
+  const rawId     = document.getElementById('fdItemId').value;
+  const pizzaArea = document.getElementById('fdPizzaArea');
+  const custoEl   = document.getElementById('fdCustoPreview');
+  if (!rawId.startsWith('pt_')) {
+    if (pizzaArea) pizzaArea.style.display = 'none';
+    return;
+  }
+  const tipoId = rawId.replace('pt_', '');
+  const tipo   = PIZZA_TIPOS.find(t => t.id === tipoId);
+  if (!tipo || !pizzaArea) return;
+
+  pizzaArea.style.display = '';
+  const isGrande = tipo.grande;
+  const sabs     = sabores.filter(s => s.tipo === tipoId && s.active !== false)
+                          .sort((a,b) => a.acr - b.acr || a.name.localeCompare(b.name));
+
+  const opts = '<option value="">Selecionar sabor...</option>' +
+    sabs.map(s => `<option value="${s.id}">${s.name}${s.acr > 0 ? ' (+R$' + fmt(s.acr) + ')' : ''}</option>`).join('');
+
+  document.getElementById('fdSabor1').innerHTML = opts;
+  document.getElementById('fdSabor1Label').textContent = isGrande ? '1º Sabor (1/2) *' : 'Sabor *';
+
+  const sab2Row = document.getElementById('fdSabor2Row');
+  if (sab2Row) sab2Row.style.display = isGrande ? '' : 'none';
+  document.getElementById('fdSabor2').innerHTML = opts;
+
+  _calcPizzaCusto();
+}
+
+function _calcPizzaCusto() {
+  const rawId   = document.getElementById('fdItemId').value;
+  const tipoId  = rawId.replace('pt_', '');
+  const tipo    = PIZZA_TIPOS.find(t => t.id === tipoId);
+  if (!tipo) return;
+
+  const sab1Id  = parseInt(document.getElementById('fdSabor1').value);
+  const sab2Id  = parseInt(document.getElementById('fdSabor2')?.value);
+  const sab1    = sabores.find(s => s.id === sab1Id);
+  const sab2    = sabores.find(s => s.id === sab2Id);
+
+  let total = tipo.basePrice;
+  if (sab1) total += sab1.acr;
+  if (tipo.grande && sab2) total += sab2.acr;
+
+  const el = document.getElementById('fdCustoPreview');
+  if (el) {
+    const sabDesc = sab1 ? (tipo.grande && sab2 ? sab1.name + ' + ' + sab2.name : sab1.name) : '—';
+    el.innerHTML = `
+      <div style="background:var(--purple-xlight);border:1.5px solid var(--purple-light);border-radius:var(--r8);padding:10px 14px">
+        <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px">Valor total do produto desperdiçado</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--purple)">R$ ${fmt(total)}</div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:2px">${tipo.label} · ${sabDesc}</div>
+      </div>`;
+  }
 }
 
 function saveDesp() {
-  const itemId = parseInt(document.getElementById('fdItemId').value);
+  const rawId  = document.getElementById('fdItemId').value;
   const qty    = parseFloat(document.getElementById('fdQty').value);
   const tipo   = document.getElementById('fdTipo').value;
-  if (!itemId) { toast('Selecione o insumo', 'err'); return; }
+  const origem = document.getElementById('fdOrigem').value;
+
+  if (!rawId) { toast('Selecione o item', 'err'); return; }
   if (!qty || qty <= 0) { toast('Informe a quantidade', 'err'); return; }
 
-  const item  = items.find(i => i.id === itemId);
-  const custo = (item?.cost || 0) * qty;
+  // Resolve item/produto e custo
+  let itemId = null, prodId = null, nome = '', unidade = '', custo = 0, d_extra = {};
+
+  if (rawId.startsWith('p_')) {
+    // Produto (pizza/bebida) — custo = preço de venda
+    prodId = parseInt(rawId.slice(2));
+    const prod = (typeof produtos !== 'undefined' ? produtos : []).find(p => p.id === prodId);
+    if (!prod) { toast('Produto não encontrado', 'err'); return; }
+    nome    = prod.name;
+    unidade = 'un';
+    custo   = prod.price * qty;
+  } else {
+    // Insumo ou Preparado
+    itemId = parseInt(rawId.slice(2));
+    const item = items.find(i => i.id === itemId);
+    if (!item) { toast('Insumo não encontrado', 'err'); return; }
+    nome    = item.name;
+    unidade = item.unit;
+    custo   = (item.cost || 0) * qty;
+  }
 
   const d = {
-    id:     _editDespId || (Math.max(...desperdicios.map(d => d.id), 0) + 1),
+    id:      _editDespId || (Math.max(0, ...desperdicios.map(d => d.id)) + 1),
     itemId,
+    prodId,
+    origem,
+    nome,
+    unidade,
     qty,
     tipo,
-    date:   document.getElementById('fdDate').value,
-    resp:   document.getElementById('fdResp').value.trim(),
-    obs:    document.getElementById('fdObs').value.trim(),
     custo,
+    ...d_extra,
+    date:      document.getElementById('fdDate').value,
+    resp:      document.getElementById('fdResp').value.trim(),
+    obs:       document.getElementById('fdObs').value.trim(),
     createdAt: new Date().toISOString(),
   };
 
   if (_editDespId) {
     const idx = desperdicios.findIndex(x => x.id === _editDespId);
     if (idx >= 0) desperdicios[idx] = d;
-    toast(`✅ Registro atualizado!`);
+    toast('✅ Registro atualizado!');
   } else {
-    // Debita do estoque automaticamente
-    if (item) {
-      item.qty = Math.max(0, parseFloat((item.qty - qty).toFixed(3)));
-      saveI();
+    // Debita do estoque apenas para insumos/preparados
+    if (itemId) {
+      const item = items.find(i => i.id === itemId);
+      if (item) { item.qty = Math.max(0, parseFloat((item.qty - qty).toFixed(3))); saveI(); }
     }
     desperdicios.push(d);
-    toast(`✅ Desperdício registrado! ${qty} ${item?.unit || ''} debitado do estoque.`);
+    const msg = itemId
+      ? `✅ Desperdício registrado! ${qty} ${unidade} debitado do estoque.`
+      : `✅ Desperdício de produto registrado! Custo: R$ ${fmt(custo)}`;
+    toast(msg);
   }
 
   saveD();

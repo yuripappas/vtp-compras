@@ -8,7 +8,7 @@
 // ══════════════════════════════════════════════════════════════
 
 function setCadTab(tab) {
-  ['insumos', 'fornecedores', 'preparo'].forEach(t => {
+  ['insumos', 'fornecedores', 'preparo', 'produtos'].forEach(t => {
     document.getElementById(`cad-${t}`).style.display = t === tab ? 'block' : 'none';
     const btn = document.getElementById(`cad-tab-${t}`);
     if (btn) {
@@ -19,6 +19,7 @@ function setCadTab(tab) {
   if (tab === 'insumos')      renderCadInsumos();
   if (tab === 'fornecedores') renderFornecedores();
   if (tab === 'preparo')      renderPreparoGrid();
+  if (tab === 'produtos')     renderCadProdutos();
 }
 
 function renderCadastros() {
@@ -437,4 +438,197 @@ function deleteSup() {
   renderFornecedores();
   renderDashboard();
   toast(`🗑 "${s.name}" excluído.`);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// CADASTRO DE PRODUTOS (Pizzas e Bebidas para Desperdício)
+// ══════════════════════════════════════════════════════════════
+
+const PROD_CATS = ['Pizza Pequena', 'Pizza Grande', 'Bebida', 'Outro'];
+
+function renderCadProdutos() {
+  const el = document.getElementById('cadProdutosGrid');
+  if (!el) return;
+
+  const byCat = {};
+  produtos.forEach(p => {
+    if (!byCat[p.cat]) byCat[p.cat] = [];
+    byCat[p.cat].push(p);
+  });
+
+  el.innerHTML = Object.entries(byCat).map(([cat, prods]) => `
+    <div style="margin-bottom:20px">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--border)">${cat}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${prods.map(p => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r8)">
+            <div style="flex:1">
+              <div style="font-size:.84rem;font-weight:700">${p.name}</div>
+              <div style="font-size:.68rem;color:var(--muted)">Preço de venda: R$ ${fmt(p.price)} · ${p.active ? 'Ativo' : 'Inativo'}</div>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="openProdModal(${p.id})">✏️ Editar</button>
+          </div>`).join('')}
+      </div>
+    </div>`).join('') || `<div class="empty"><div class="empty-icon">🍕</div>Nenhum produto cadastrado</div>`;
+}
+
+let _editProdId = null;
+
+function openProdModal(id) {
+  _editProdId = id || null;
+  const p = id ? produtos.find(x => x.id === id) : null;
+  document.getElementById('fprodModalTitle').textContent = p ? `✏️ ${p.name}` : 'Novo Produto';
+  document.getElementById('fprodName').value   = p?.name   || '';
+  document.getElementById('fprodCat').value    = p?.cat    || 'Pizza Pequena';
+  document.getElementById('fprodPrice').value  = p?.price  || '';
+  document.getElementById('fprodActive').checked = p ? p.active !== false : true;
+  document.getElementById('delProdBtn').style.display = p ? 'inline-flex' : 'none';
+  document.getElementById('ovProd').classList.add('open');
+  setTimeout(() => document.getElementById('fprodName').focus(), 80);
+}
+
+function saveProd() {
+  const name  = document.getElementById('fprodName').value.trim();
+  const cat   = document.getElementById('fprodCat').value;
+  const price = parseFloat(document.getElementById('fprodPrice').value) || 0;
+  if (!name) { toast('Informe o nome do produto', 'err'); return; }
+  if (!price) { toast('Informe o preço de venda', 'err'); return; }
+
+  if (_editProdId) {
+    const idx = produtos.findIndex(p => p.id === _editProdId);
+    if (idx >= 0) produtos[idx] = { ...produtos[idx], name, cat, price, active: document.getElementById('fprodActive').checked };
+    toast('✅ Produto atualizado!');
+  } else {
+    produtos.push({ id: nextPid++, name, cat, price, active: true });
+    toast('✅ Produto cadastrado!');
+  }
+  saveP();
+  closeModal('ovProd');
+  renderCadProdutos();
+}
+
+function deleteProd() {
+  if (!_editProdId) return;
+  if (!confirm('Excluir este produto?')) return;
+  produtos = produtos.filter(p => p.id !== _editProdId);
+  saveP();
+  closeModal('ovProd');
+  renderCadProdutos();
+  toast('🗑 Produto excluído.');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SABORES DE PIZZA
+// ══════════════════════════════════════════════════════════════
+
+function setProdTab(tab) {
+  ['sabores','outros'].forEach(t => {
+    const btn = document.getElementById('prod-tab-' + t);
+    const isActive = t === tab;
+    if (btn) {
+      btn.style.color            = isActive ? 'var(--purple)' : 'var(--muted)';
+      btn.style.borderBottomColor = isActive ? 'var(--purple)' : 'transparent';
+    }
+  });
+  document.getElementById('cadSaboresGrid').style.display  = tab === 'sabores' ? '' : 'none';
+  document.getElementById('cadProdutosGrid').style.display = tab === 'outros'  ? '' : 'none';
+  if (tab === 'sabores') renderCadSabores();
+  else renderCadProdutos();
+}
+
+function renderCadSabores() {
+  const el = document.getElementById('cadSaboresGrid');
+  if (!el) return;
+  const byCat = {};
+  PIZZA_TIPOS.forEach(t => {
+    byCat[t.id] = { label: t.label, basePrice: t.basePrice, items: [] };
+  });
+  sabores.forEach(s => { if (byCat[s.tipo]) byCat[s.tipo].items.push(s); });
+
+  el.innerHTML = PIZZA_TIPOS.map(tipo => {
+    const cat = byCat[tipo.id];
+    return `<div style="margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--border)">
+        <div>
+          <div style="font-size:.82rem;font-weight:700">${tipo.label}</div>
+          <div style="font-size:.67rem;color:var(--muted)">Base: R$ ${fmt(tipo.basePrice)}</div>
+        </div>
+        <button class="btn btn-outline btn-xs" onclick="openSaborModal('${tipo.id}')">+ Sabor</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${cat.items.sort((a,b)=>a.acr-b.acr||a.name.localeCompare(b.name)).map(s => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1.5px solid ${s.active===false?'var(--border)':'var(--border)'};border-radius:var(--r6);opacity:${s.active===false?0.5:1}">
+            <div style="flex:1">
+              <span style="font-size:.8rem;font-weight:600">${s.name}</span>
+              <span style="font-size:.7rem;color:var(--muted);margin-left:8px">${s.acr > 0 ? '+R$ ' + fmt(s.acr) : 'Incluso'}</span>
+              <span style="font-size:.7rem;color:var(--purple);font-weight:700;margin-left:8px">= R$ ${fmt(tipo.basePrice + s.acr)}</span>
+            </div>
+            <button class="btn btn-outline btn-xs" onclick="openSaborModal('${tipo.id}', ${s.id})">✏️</button>
+          </div>`).join('')}
+        ${cat.items.length === 0 ? `<div style="font-size:.72rem;color:var(--muted);padding:8px">Nenhum sabor cadastrado</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Also update renderCadProdutos to be called from tab
+const _origRenderCadProdutos = renderCadProdutos;
+function renderCadProdutos() {
+  const el = document.getElementById('cadProdutosGrid');
+  if (!el) return;
+  _origRenderCadProdutos();
+}
+
+let _editSaborId = null, _editSaborTipo = null;
+
+function openSaborModal(tipoId, saborId) {
+  _editSaborId   = saborId || null;
+  _editSaborTipo = tipoId;
+  const s    = saborId ? sabores.find(x => x.id === saborId) : null;
+  const tipo = PIZZA_TIPOS.find(t => t.id === tipoId);
+
+  document.getElementById('fsabModalTitle').textContent = s ? `✏️ ${s.name}` : `Novo Sabor — ${tipo?.label}`;
+  document.getElementById('fsabTipo').textContent  = tipo?.label || '';
+  document.getElementById('fsabName').value        = s?.name || '';
+  document.getElementById('fsabAcr').value         = s?.acr ?? '';
+  document.getElementById('fsabActive').checked    = s ? s.active !== false : true;
+  document.getElementById('delSaborBtn').style.display = s ? 'inline-flex' : 'none';
+  document.getElementById('ovSabor').classList.add('open');
+  setTimeout(() => document.getElementById('fsabName').focus(), 80);
+}
+
+function saveSabor() {
+  const name   = document.getElementById('fsabName').value.trim();
+  const acr    = parseFloat(document.getElementById('fsabAcr').value) || 0;
+  const active = document.getElementById('fsabActive').checked;
+  if (!name) { toast('Informe o nome do sabor', 'err'); return; }
+
+  if (_editSaborId) {
+    const idx = sabores.findIndex(s => s.id === _editSaborId);
+    if (idx >= 0) sabores[idx] = { ...sabores[idx], name, acr, active };
+    toast('✅ Sabor atualizado!');
+  } else {
+    sabores.push({ id: nextSabId++, tipo: _editSaborTipo, name, acr, active });
+    toast('✅ Sabor adicionado!');
+  }
+  saveSab();
+  closeModal('ovSabor');
+  renderCadSabores();
+}
+
+function deleteSabor() {
+  if (!_editSaborId) return;
+  if (!confirm('Excluir este sabor?')) return;
+  sabores = sabores.filter(s => s.id !== _editSaborId);
+  saveSab();
+  closeModal('ovSabor');
+  renderCadSabores();
+  toast('🗑 Sabor excluído.');
+}
+
+// Override renderCadProdutos to default to sabores tab
+const _origSetCadTab = setCadTab;
+function renderCadastros() {
+  _origSetCadTab('insumos');
 }
