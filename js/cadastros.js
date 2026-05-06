@@ -19,7 +19,7 @@ function setCadTab(tab) {
   if (tab === 'insumos')      renderCadInsumos();
   if (tab === 'fornecedores') renderFornecedores();
   if (tab === 'preparo')      renderPreparoGrid();
-  if (tab === 'produtos')     renderCadProdutos();
+  if (tab === 'produtos')     { renderCadSabores(); setProdTab('sabores'); }
 }
 
 function renderCadastros() {
@@ -525,14 +525,15 @@ function deleteProd() {
 function setProdTab(tab) {
   ['sabores','outros'].forEach(t => {
     const btn = document.getElementById('prod-tab-' + t);
+    if (!btn) return;
     const isActive = t === tab;
-    if (btn) {
-      btn.style.color            = isActive ? 'var(--purple)' : 'var(--muted)';
-      btn.style.borderBottomColor = isActive ? 'var(--purple)' : 'transparent';
-    }
+    btn.style.color             = isActive ? 'var(--purple)' : 'var(--muted)';
+    btn.style.borderBottomColor = isActive ? 'var(--purple)' : 'transparent';
   });
-  document.getElementById('cadSaboresGrid').style.display  = tab === 'sabores' ? '' : 'none';
-  document.getElementById('cadProdutosGrid').style.display = tab === 'outros'  ? '' : 'none';
+  const sabGrid  = document.getElementById('cadSaboresGrid');
+  const prodGrid = document.getElementById('cadProdutosGrid');
+  if (sabGrid)  sabGrid.style.display  = tab === 'sabores' ? '' : 'none';
+  if (prodGrid) prodGrid.style.display = tab === 'outros'  ? '' : 'none';
   if (tab === 'sabores') renderCadSabores();
   else renderCadProdutos();
 }
@@ -572,13 +573,7 @@ function renderCadSabores() {
   }).join('');
 }
 
-// Also update renderCadProdutos to be called from tab
-const _origRenderCadProdutos = renderCadProdutos;
-function renderCadProdutos() {
-  const el = document.getElementById('cadProdutosGrid');
-  if (!el) return;
-  _origRenderCadProdutos();
-}
+// renderCadProdutos already handles cadProdutosGrid correctly
 
 let _editSaborId = null, _editSaborTipo = null;
 
@@ -627,8 +622,4 @@ function deleteSabor() {
   toast('🗑 Sabor excluído.');
 }
 
-// Override renderCadProdutos to default to sabores tab
-const _origSetCadTab = setCadTab;
-function renderCadastros() {
-  _origSetCadTab('insumos');
-}
+
