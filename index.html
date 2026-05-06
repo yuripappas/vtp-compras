@@ -445,6 +445,7 @@
           <button id="cad-tab-insumos" onclick="setCadTab('insumos')" style="padding:10px 20px;font-size:.8rem;font-weight:600;color:var(--purple);cursor:pointer;border:none;border-bottom:3px solid var(--purple);margin-bottom:-2px;background:none;font-family:Inter,sans-serif">📦 Insumos</button>
           <button id="cad-tab-fornecedores" onclick="setCadTab('fornecedores')" style="padding:10px 20px;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;font-family:Inter,sans-serif">🏢 Fornecedores</button>
           <button id="cad-tab-preparo" onclick="setCadTab('preparo')" style="padding:10px 20px;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;font-family:Inter,sans-serif">🍳 Pré-preparo</button>
+          <button id="cad-tab-produtos" onclick="setCadTab('produtos')" style="padding:10px 20px;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;font-family:Inter,sans-serif">🍕 Produtos</button>
         </div>
         <div id="cad-insumos">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
@@ -649,12 +650,49 @@
   <div class="mbox">
     <div class="mh"><div class="mt" id="despModalTitle">Registrar Desperdício</div><button class="mc" onclick="closeModal('ovDesp')">✕</button></div>
     <div class="mb">
-      <div style="background:var(--red-light);border:1.5px solid #FECACA;border-radius:var(--r8);padding:10px 12px;font-size:.76rem;color:var(--red);margin-bottom:4px">
-        ⚠️ O insumo selecionado terá a quantidade <strong>debitada automaticamente</strong> do estoque.
+      <div class="field">
+        <label>Origem do desperdício *</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <button type="button" id="orig-btn-insumo" onclick="setDespOrigem('insumo')"
+            style="padding:6px 14px;border-radius:20px;font-size:.76rem;font-weight:600;border:1.5px solid var(--purple);background:var(--purple);color:#fff;cursor:pointer">
+            📦 Insumo
+          </button>
+          <button type="button" id="orig-btn-preparado" onclick="setDespOrigem('preparado')"
+            style="padding:6px 14px;border-radius:20px;font-size:.76rem;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">
+            🍳 Preparado
+          </button>
+          <button type="button" id="orig-btn-produto" onclick="setDespOrigem('produto')"
+            style="padding:6px 14px;border-radius:20px;font-size:.76rem;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer">
+            🍕 Produto
+          </button>
+        </div>
+        <input type="hidden" id="fdOrigem" value="insumo">
+        <div id="origemNote" style="font-size:.68rem;color:var(--muted);margin-top:2px">📦 Insumos de compras — quantidade debitada do estoque automaticamente</div>
       </div>
       <div class="field">
-        <label>Insumo *</label>
-        <select class="inp" id="fdItemId"><option value="">Selecionar...</option></select>
+        <label id="fdQtyLabel">Item *</label>
+        <select class="inp" id="fdItemId" onchange="onDespItemChange()">
+          <option value="">Selecionar...</option>
+        </select>
+      </div>
+
+      <!-- Área de sabores (só aparece para pizza) -->
+      <div id="fdPizzaArea" style="display:none">
+        <div class="f2">
+          <div class="field">
+            <label id="fdSabor1Label">Sabor *</label>
+            <select class="inp" id="fdSabor1" onchange="_calcPizzaCusto()">
+              <option value="">Selecionar sabor...</option>
+            </select>
+          </div>
+          <div class="field" id="fdSabor2Row">
+            <label>2º Sabor (1/2) *</label>
+            <select class="inp" id="fdSabor2" onchange="_calcPizzaCusto()">
+              <option value="">Selecionar sabor...</option>
+            </select>
+          </div>
+        </div>
+        <div id="fdCustoPreview" style="margin-top:8px"></div>
       </div>
       <div class="f2">
         <div class="field">
@@ -869,6 +907,65 @@
 
 </div><!-- /appScreen -->
 
+<!-- Modal: Sabor de Pizza -->
+<div class="overlay" id="ovSabor">
+  <div class="mbox" style="max-width:420px">
+    <div class="mh"><div class="mt" id="fsabModalTitle">Novo Sabor</div><button class="mc" onclick="closeModal('ovSabor')">✕</button></div>
+    <div class="mb">
+      <div style="font-size:.72rem;color:var(--muted);background:var(--surface2);border-radius:var(--r8);padding:8px 12px;margin-bottom:12px" id="fsabTipo"></div>
+      <div class="field"><label>Nome do sabor *</label><input class="inp" id="fsabName" placeholder="ex: Frango Caipira"></div>
+      <div class="field">
+        <label>Acréscimo no preço (R$)</label>
+        <input class="inp" type="number" id="fsabAcr" placeholder="0.00" step="0.50" min="0">
+        <span style="font-size:.68rem;color:var(--muted);margin-top:3px">0 = incluso no preço base</span>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:8px">
+        <input type="checkbox" id="fsabActive" checked style="accent-color:var(--purple);width:16px;height:16px">
+        <span style="font-size:.8rem">Sabor ativo (aparece na lista)</span>
+      </label>
+    </div>
+    <div class="mf">
+      <button class="btn btn-red btn-sm" id="delSaborBtn" style="display:none;margin-right:auto" onclick="deleteSabor()">🗑 Excluir</button>
+      <button class="btn btn-outline" onclick="closeModal('ovSabor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSabor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Produto -->
+<div class="overlay" id="ovProd">
+  <div class="mbox">
+    <div class="mh"><div class="mt" id="fprodModalTitle">Novo Produto</div><button class="mc" onclick="closeModal('ovProd')">✕</button></div>
+    <div class="mb">
+      <div class="f2">
+        <div class="field"><label>Nome do produto *</label><input class="inp" id="fprodName" placeholder="ex: Pizza Grande Salgada"></div>
+        <div class="field"><label>Categoria</label>
+          <select class="inp" id="fprodCat">
+            <option>Pizza Pequena</option>
+            <option>Pizza Grande</option>
+            <option>Bebida</option>
+            <option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="f2">
+        <div class="field"><label>Preço de venda (R$) *</label><input class="inp" type="number" id="fprodPrice" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="field" style="justify-content:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;margin-top:20px;cursor:pointer">
+            <input type="checkbox" id="fprodActive" checked style="accent-color:var(--purple);width:16px;height:16px">
+            <span style="font-size:.8rem">Produto ativo</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-red btn-sm" id="delProdBtn" style="display:none;margin-right:auto" onclick="deleteProd()">🗑 Excluir</button>
+      <button class="btn btn-outline" onclick="closeModal('ovProd')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProd()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="js/data.js"></script>
@@ -898,3 +995,25 @@
 </script>
 </body>
 </html>
+        <!-- ABA PRODUTOS -->
+        <div id="cad-produtos" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:.8rem;font-weight:700">Sabores e Produtos</div>
+              <div style="font-size:.7rem;color:var(--muted)">Sabores de pizza com preço · usados no desperdício de produto</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-outline btn-sm" onclick="openSaborModal()">+ Novo Sabor</button>
+              <button class="btn btn-primary btn-sm" onclick="openProdModal()">+ Outro Produto</button>
+            </div>
+          </div>
+          <!-- Tabs Sabores / Outros -->
+          <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px">
+            <button id="prod-tab-sabores" onclick="setProdTab('sabores')" style="padding:8px 18px;font-size:.78rem;font-weight:600;color:var(--purple);border:none;border-bottom:3px solid var(--purple);margin-bottom:-2px;background:none;cursor:pointer;font-family:Inter,sans-serif">🍕 Sabores</button>
+            <button id="prod-tab-outros" onclick="setProdTab('outros')" style="padding:8px 18px;font-size:.78rem;font-weight:600;color:var(--muted);border:none;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;cursor:pointer;font-family:Inter,sans-serif">📦 Outros produtos</button>
+          </div>
+          <div id="cadSaboresGrid"></div>
+          <div id="cadProdutosGrid" style="display:none"></div>
+        </div>
+
+      
