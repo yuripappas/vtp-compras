@@ -81,7 +81,10 @@ function _renderComprasDashboard() {
         ✏️ ${sup?.name?.split(' ')[0] || 'Forn.'}
       </button>`;
     }).join('') : ''}
-    ${responded > 0 ? `<button class="btn btn-outline btn-xs" onclick="goStep(3)">📊 Ver mapa</button>` : ''}`;
+    ${responded > 0 ? `<button class="btn btn-outline btn-xs" onclick="goStep(3)">📊 Ver mapa</button>` : ''}
+    <button class="btn btn-red btn-xs" onclick="encerrarCicloManual()" title="Encerra e arquiva o ciclo atual sem precisar aprovar tudo">
+      🔴 Encerrar ciclo
+    </button>`;
 
   // Barra progresso
   if (progDiv) progDiv.style.display = disps.length ? '' : 'none';
@@ -1174,6 +1177,57 @@ function copiarOC(supId) {
     sg.items.map(i => { const item = items.find(x => x.id === i.itemId); return '• ' + item?.name + ': ' + i.qty + ' ' + item?.unit + ' × R$' + fmt(i.unitPrice) + ' = R$' + fmt(i.qty * i.unitPrice); }).join('\n') +
     '\n\nTotal: R$' + fmt(total) + '\nEntrega: ' + fmtD(cycle?.deliveryDate) + '\nPagamento: ' + sg.payTerm + ' — ' + sg.payMethod;
   navigator.clipboard.writeText(text).then(() => toast('📋 OC copiada!', 'info'));
+}
+
+function encerrarCicloManual() {
+  if (!cycle) { toast('Nenhum ciclo ativo', 'err'); return; }
+  const appCount  = Object.keys(approvals).length;
+  const totalItens = cycle.items?.length || 0;
+  const msg = appCount < totalItens
+    ? `Encerrar o ciclo ${cycle.id} agora?\n\n${appCount} de ${totalItens} itens foram aprovados.\nOs itens sem aprovação NÃO serão incluídos na Ordem de Compra.\n\nO ciclo será arquivado no histórico.`
+    : `Encerrar o ciclo ${cycle.id}?\n\nTodos os ${totalItens} itens foram aprovados.\nO ciclo será arquivado no histórico.`;
+  if (!confirm(msg)) return;
+
+  // Calcula totais com o que foi aprovado até agora
+  const appEntries = Object.entries(approvals);
+  const total = appEntries.reduce((s, [itemId, ap]) => {
+    const resp = responses[ap.token];
+    const ri   = resp?.items?.find(x => x.itemId === parseInt(itemId));
+    const ci   = cycle.items.find(c => c.itemId === parseInt(itemId));
+    return s + (ri?.unitPrice || 0) * (ci?.qty || 0);
+  }, 0);
+  const totalRef = cycle.items.reduce((s, ci) => {
+    const item = items.find(i => i.id === ci.itemId);
+    return s + ci.qty * (item?.cost || 0);
+  }, 0);
+
+  // Salva no histórico
+  cycleHistory.push({
+    id:       cycle.id,
+    date:     cycle.createdAt,
+    items:    appEntries.length,
+    sups:     cycle.dispatches?.length || 0,
+    total,
+    economia: Math.max(0, totalRef - total),
+    encerrado: true,
+  });
+
+  // Atualiza custos dos itens aprovados
+  appEntries.forEach(([itemId, ap]) => {
+    const resp = responses[ap.token];
+    const ri   = resp?.items?.find(x => x.itemId === parseInt(itemId));
+    const item = items.find(i => i.id === parseInt(itemId));
+    if (ri && item) item.cost = ri.unitPrice;
+  });
+
+  saveI(); saveCH();
+  cycle     = null; saveC();
+  responses = {};   saveR();
+  approvals = {};   saveAp();
+  toast('✅ Ciclo encerrado e arquivado!');
+  renderDashboard();
+  _renderComprasDashboard();
+  goStep(1);
 }
 
 function finalizarCiclo() {
