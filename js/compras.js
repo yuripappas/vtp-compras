@@ -108,53 +108,56 @@ function _renderEtapa1() {
   _listaAtual.etapa = 1;
   saveListas();
 
-  // Prazo
   const prazoHtml = l.prazoCotacao ? `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--yellow-light);border:1.5px solid var(--yellow);border-radius:var(--r8);font-size:.75rem">
-      ⏰ Prazo: ${fmtDT(l.prazoCotacao)} · <span id="timer1"></span>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--yellow-light);border:1.5px solid var(--yellow);border-radius:var(--r8);font-size:.75rem;margin-bottom:12px">
+      ⏰ Prazo: ${fmtDT(l.prazoCotacao)} · <span id="timer1" style="font-weight:700"></span>
     </div>` : '';
 
   document.getElementById('comprasContent').innerHTML = `
-    <!-- Header -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <!-- Header reorganizado: botão + item à esquerda, status + ações à direita -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px">
       <div>
         <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">📋 Lista de Compras · ${l.codigo}</h3>
         <div style="font-size:.72rem;color:var(--muted)">${l.itens.length} itens · Estimativa: <strong style="color:var(--purple)">R$ ${fmt(l.valorEstimado)}</strong></div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="abrirAddItemManual()">+ Adicionar item</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <!-- Status badges à direita -->
+        ${['montagem','cotacao','cotacao_encerrada'].map(s => {
+          const st = STATUS_ETAPA[s];
+          const isActive = l.status === s;
+          return `<button onclick="setStatusLista('${s}')"
+            style="padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:600;border:1.5px solid ${isActive ? st.color : 'var(--border)'};background:${isActive ? st.bg : 'var(--surface)'};color:${isActive ? st.color : 'var(--muted)'};cursor:pointer">
+            ${st.label}
+          </button>`;
+        }).join('')}
         <button class="btn btn-outline btn-sm" onclick="abrirPrazoCotacao()">⏰ Prazo</button>
-        <button class="btn btn-primary btn-sm" onclick="enviarCotacaoWA()">💬 Enviar cotação WA</button>
       </div>
     </div>
 
     ${prazoHtml}
 
-    <!-- Status bar -->
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-      ${['montagem','cotacao','cotacao_encerrada'].map(s => {
-        const st = STATUS_ETAPA[s];
-        const isActive = l.status === s;
-        return `<button onclick="setStatusLista('${s}')"
-          style="padding:5px 12px;border-radius:20px;font-size:.72rem;font-weight:600;border:1.5px solid ${isActive ? st.color : 'var(--border)'};background:${isActive ? st.bg : 'var(--surface)'};color:${isActive ? st.color : 'var(--muted)'};cursor:pointer">
-          ${st.label}
-        </button>`;
-      }).join('')}
-    </div>
-
     <!-- Tabela de itens -->
-    <div class="card" style="margin-bottom:16px">
+    <div class="card" style="margin-bottom:16px;overflow:hidden">
+      <!-- Botão + Adicionar item acima da coluna Item -->
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)">
+        <button onclick="abrirAddItemManual()"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r8);border:1.5px solid var(--purple);background:white;color:var(--purple);font-size:.76rem;font-weight:700;cursor:pointer">
+          + Adicionar item
+        </button>
+        <div style="font-size:.68rem;color:var(--muted)">Clique no preço ou quantidade para editar</div>
+      </div>
       <div class="tbl-wrap" style="border:none">
         <table>
           <thead><tr>
-            <th>Item</th>
-            <th class="c">Qtd</th>
-            <th class="c">Un.</th>
-            <th class="r">Preço unit.</th>
-            <th class="r">Total</th>
-            <th class="c">Fornecedor</th>
-            <th class="c">Obs.</th>
-            <th class="c"></th>
+            <th style="min-width:180px">Item</th>
+            <th class="c" style="width:90px">Qtd</th>
+            <th class="c" style="width:60px">Un.</th>
+            <th class="c" style="width:130px">Preço unit.</th>
+            <th class="r" style="width:120px">Total</th>
+            <th class="c" style="min-width:160px">Fornecedor</th>
+            <th class="c" style="width:40px">WA</th>
+            <th class="c" style="width:100px">Obs.</th>
+            <th class="c" style="width:36px"></th>
           </tr></thead>
           <tbody id="itens1Body">
             ${l.itens.map(i => _rowEtapa1(i)).join('')}
@@ -162,8 +165,8 @@ function _renderEtapa1() {
           <tfoot>
             <tr style="background:var(--purple-xlight)">
               <td colspan="4" style="padding:10px 14px;font-weight:700;font-size:.82rem">Total estimado</td>
-              <td class="r" style="padding:10px 14px;font-weight:800;font-size:.9rem;color:var(--purple)">R$ ${fmt(l.valorEstimado)}</td>
-              <td colspan="3"></td>
+              <td class="r" style="padding:10px 14px;font-weight:800;font-size:.9rem;color:var(--purple)" id="totalEstimado">R$ ${fmt(l.valorEstimado)}</td>
+              <td colspan="4"></td>
             </tr>
           </tfoot>
         </table>
@@ -176,10 +179,8 @@ function _renderEtapa1() {
       <textarea class="inp" rows="2" placeholder="Condições de pagamento, urgência..." onchange="setObsLista(this.value)">${l.observacoes}</textarea>
     </div>
 
-    <!-- Ação -->
     <div style="display:flex;justify-content:flex-end">
-      <button class="btn btn-primary" onclick="avancarParaAprovacao()"
-        style="padding:12px 28px;font-size:.88rem">
+      <button class="btn btn-primary" onclick="avancarParaAprovacao()" style="padding:12px 28px;font-size:.88rem">
         Enviar para aprovação →
       </button>
     </div>`;
@@ -187,9 +188,20 @@ function _renderEtapa1() {
   if (l.prazoCotacao) _startTimer('timer1', l.prazoCotacao);
 }
 
+
 function _rowEtapa1(i) {
   const sup = suppliers.find(s => s.id === i.fornecedorId);
   const tot = i.qtdSelecionada * (i.precoUnitFinal || i.precoUnitEstimado || 0);
+  // Botão WA: só aparece se fornecedor selecionado E tem telefone
+  const waPhone = sup?.phone ? sup.phone.replace(/\D/g,'') : '';
+  const waMsg   = waPhone ? encodeURIComponent(
+    'Olá ' + (sup?.seller || sup?.name) + '! Solicito cotação:\n• ' + i.nome + ': ' + i.qtdSelecionada + ' ' + i.unidade
+  ) : '';
+  const waBtnHtml = waPhone
+    ? `<a href="https://wa.me/55${waPhone}?text=${waMsg}" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#25D366;color:#fff;text-decoration:none;font-size:.9rem;flex-shrink:0" title="Enviar cotação WA para ${sup?.name}">💬</a>`
+    : `<span style="color:var(--border);font-size:.75rem">—</span>`;
+
   return `<tr id="item1-${i.id}">
     <td style="padding:8px 14px">
       <div style="font-size:.82rem;font-weight:600">${i.nome}</div>
@@ -197,31 +209,32 @@ function _rowEtapa1(i) {
     </td>
     <td class="c">
       <input type="number" value="${i.qtdSelecionada}" min="0.001" step="0.001"
-        style="width:70px;padding:4px 6px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.78rem;text-align:center;font-family:monospace"
+        style="width:76px;padding:4px 6px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.78rem;text-align:center;font-family:monospace"
         onchange="setItemQtd1(${i.id}, this.value)">
     </td>
     <td class="c" style="font-size:.75rem;color:var(--muted)">${i.unidade}</td>
-    <td class="r">
-      <div style="position:relative;display:inline-block">
-        <span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:.65rem;color:var(--muted)">R$</span>
+    <td class="c">
+      <div style="position:relative;display:inline-flex;align-items:center">
+        <span style="position:absolute;left:7px;font-size:.65rem;color:var(--muted);pointer-events:none">R$</span>
         <input type="number" value="${i.precoUnitFinal || i.precoUnitEstimado || ''}" min="0" step="0.01" placeholder="0,00"
-          style="width:80px;padding:4px 6px 4px 22px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.78rem;text-align:right;font-family:monospace"
+          style="width:110px;padding:4px 6px 4px 26px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.82rem;text-align:right;font-family:monospace"
           onchange="setItemPreco1(${i.id}, this.value)">
       </div>
     </td>
-    <td class="r" style="font-family:monospace;font-size:.78rem;font-weight:600;color:${tot>0?'var(--purple)':'var(--muted)'}" id="item1-tot-${i.id}">
+    <td class="r" style="font-family:monospace;font-size:.82rem;font-weight:700;color:${tot>0?'var(--purple)':'var(--muted)'};padding-right:14px" id="item1-tot-${i.id}">
       ${tot > 0 ? 'R$ ' + fmt(tot) : '—'}
     </td>
     <td class="c">
-      <select style="font-size:.72rem;border:1.5px solid var(--border);border-radius:var(--r6);padding:4px 6px;max-width:130px"
+      <select style="font-size:.72rem;border:1.5px solid var(--border);border-radius:var(--r6);padding:4px 6px;max-width:150px;width:100%"
         onchange="setItemFornecedor1(${i.id}, this.value)">
         <option value="">— Selecionar</option>
         ${suppliers.map(s => `<option value="${s.id}" ${s.id===i.fornecedorId?'selected':''}>${s.name}</option>`).join('')}
       </select>
     </td>
+    <td class="c">${waBtnHtml}</td>
     <td class="c">
       <input type="text" value="${i.observacoes}" placeholder="obs..."
-        style="font-size:.72rem;border:1.5px solid var(--border);border-radius:var(--r6);padding:4px 6px;width:100px"
+        style="font-size:.72rem;border:1.5px solid var(--border);border-radius:var(--r6);padding:4px 6px;width:90px"
         onchange="setItemObs1(${i.id}, this.value)">
     </td>
     <td class="c">
@@ -229,6 +242,7 @@ function _rowEtapa1(i) {
     </td>
   </tr>`;
 }
+
 
 // Ações Etapa 1
 function setItemQtd1(itemId, val) {
@@ -240,7 +254,9 @@ function setItemQtd1(itemId, val) {
   saveListas();
   const tot = i.qtdSelecionada * (i.precoUnitFinal || i.precoUnitEstimado || 0);
   const el = document.getElementById('item1-tot-' + itemId);
-  if (el) el.textContent = tot > 0 ? 'R$ ' + fmt(tot) : '—';
+  if (el) { el.textContent = tot > 0 ? 'R$ ' + fmt(tot) : '—'; el.style.color = tot > 0 ? 'var(--purple)' : 'var(--muted)'; }
+  const footEl = document.getElementById('totalEstimado');
+  if (footEl) footEl.textContent = 'R$ ' + fmt(_listaAtual.valorEstimado);
 }
 
 function setItemPreco1(itemId, val) {
@@ -252,7 +268,9 @@ function setItemPreco1(itemId, val) {
   saveListas();
   const tot = i.qtdSelecionada * (i.precoUnitFinal || i.precoUnitEstimado || 0);
   const el = document.getElementById('item1-tot-' + itemId);
-  if (el) { el.textContent = tot > 0 ? 'R$ ' + fmt(tot) : '—'; el.style.color = i.precoUnitFinal ? 'var(--green)' : 'var(--muted)'; }
+  if (el) { el.textContent = tot > 0 ? 'R$ ' + fmt(tot) : '—'; el.style.color = i.precoUnitFinal ? 'var(--green)' : 'var(--purple)'; }
+  const footEl = document.getElementById('totalEstimado');
+  if (footEl) footEl.textContent = 'R$ ' + fmt(_listaAtual.valorEstimado);
 }
 
 function setItemFornecedor1(itemId, val) {
@@ -309,7 +327,7 @@ function saveItemManual() {
     id:               newId,
     itemId:           null,
     nome,
-    categoria:        document.getElementById('aiCat').value.trim() || 'Geral',
+    categoria:        document.getElementById('aiCat').value || 'Geral',
     unidade:          document.getElementById('aiUnit').value || 'un',
     qtdSugerida:      qtd,
     qtdSelecionada:   qtd,
