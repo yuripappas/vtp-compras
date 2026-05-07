@@ -82,7 +82,7 @@ function renderPrevisao() {
             <div>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
                 <div>
-                  <div style="font-size:.82rem;font-weight:600">🌡️ Temperatura da cozinha</div>
+                  <div style="font-size:.82rem;font-weight:600">${lc("thermometer",16,"var(--purple)")} Temperatura da cozinha</div>
                   <div style="font-size:.67rem;color:var(--muted)">Afeta o cálculo do fermento</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px">
@@ -98,7 +98,7 @@ function renderPrevisao() {
             <!-- Chuva -->
             <div style="display:flex;align-items:center;justify-content:space-between">
               <div>
-                <div style="font-size:.82rem;font-weight:600">🌧️ Vai chover hoje?</div>
+                <div style="font-size:.82rem;font-weight:600">${lc("cloud-rain",16,"var(--purple)")} Vai chover hoje?</div>
                 <div style="font-size:.67rem;color:var(--muted)">Chuva aumenta delivery (~+${Math.round((configPrevisao.pctDeliveryComChuva - configPrevisao.pctDeliveryNormal))}% mais entregas)</div>
               </div>
               <button id="btnChuva" onclick="toggleFator('chuva')"
@@ -110,7 +110,7 @@ function renderPrevisao() {
             <!-- Feriado -->
             <div style="display:flex;align-items:center;justify-content:space-between">
               <div>
-                <div style="font-size:.82rem;font-weight:600">🎉 Feriado / data especial?</div>
+                <div style="font-size:.82rem;font-weight:600">${lc("star",16,"var(--purple)")} Feriado / data especial?</div>
                 <div style="font-size:.67rem;color:var(--muted)">Aumenta o movimento (~+${Math.round((configPrevisao.coefFeriado-1)*100)}%)</div>
               </div>
               <button id="btnFeriado" onclick="toggleFator('feriado')"
@@ -122,7 +122,7 @@ function renderPrevisao() {
             <!-- Evento -->
             <div style="display:flex;align-items:center;justify-content:space-between">
               <div>
-                <div style="font-size:.82rem;font-weight:600">🏟️ Evento próximo?</div>
+                <div style="font-size:.82rem;font-weight:600">${lc("zap",16,"var(--purple)")} Evento próximo?</div>
                 <div style="font-size:.67rem;color:var(--muted)">Show, jogo, evento local (~+${Math.round((configPrevisao.coefEvento-1)*100)}%)</div>
               </div>
               <button id="btnEvento" onclick="toggleFator('evento')"
@@ -133,7 +133,7 @@ function renderPrevisao() {
 
             <!-- Obs -->
             <div>
-              <label style="font-size:.75rem;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">📝 Observação</label>
+              <label style="font-size:.75rem;font-weight:600;color:var(--text2);display:block;margin-bottom:4px">${lc("edit-2",14,"var(--muted)")} Observação</label>
               <input class="inp" id="fatorObs" placeholder="ex: Copa do Mundo, calor extremo, show sertanejo..."
                 style="font-size:.77rem;padding:7px 10px">
             </div>
@@ -154,10 +154,10 @@ function renderPrevisao() {
         <!-- Ações -->
         <div id="acoesPrevisao" style="display:${historico.length>0?'flex':'none'};gap:10px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="salvarPrevisaoHoje()" style="flex:1;padding:12px;font-size:.84rem">
-            💾 Salvar previsão
+            ${lc("save",15,"#fff")} Salvar previsão
           </button>
           <button class="btn btn-wa" onclick="enviarWATime()" style="flex:1;padding:12px;font-size:.84rem">
-            💬 Enviar para o time
+            ${lc("message-circle",15,"#fff")} Enviar para o time
           </button>
         </div>
 
@@ -169,32 +169,32 @@ function renderPrevisao() {
         <!-- Registrar vendas de hoje -->
         <div class="card">
           <div style="padding:14px 16px;border-bottom:1.5px solid var(--border)">
-            <div style="font-size:.84rem;font-weight:700">📥 Registrar vendas de hoje</div>
+            <div style="font-size:.84rem;font-weight:700">${lc("download",15,"var(--purple)")} Registrar vendas de hoje</div>
             <div style="font-size:.68rem;color:var(--muted)">${DIAS[diaSemana]}, ${hoje.toLocaleDateString('pt-BR')} · Para calibrar previsões futuras</div>
           </div>
           <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
             <div class="f2">
               <div class="field">
-                <label>🍕 Pizzas pequenas</label>
+                <label>${lc("pie-chart",14,"var(--purple)")} Pizzas pequenas</label>
                 <input class="inp" type="number" id="regPequena" placeholder="0" min="0">
               </div>
               <div class="field">
-                <label>🍕 Pizzas grandes</label>
+                <label>${lc("pie-chart",14,"var(--purple)")} Pizzas grandes</label>
                 <input class="inp" type="number" id="regGrande" placeholder="0" min="0">
               </div>
             </div>
             <div class="f2">
               <div class="field">
-                <label>🛵 Pedidos delivery</label>
+                <label>${lc("truck",14,"var(--purple)")} Pedidos delivery</label>
                 <input class="inp" type="number" id="regDelivery" placeholder="0" min="0">
               </div>
               <div class="field">
-                <label>🏠 Pedidos balcão</label>
+                <label>${lc("home",14,"var(--purple)")} Pedidos balcão</label>
                 <input class="inp" type="number" id="regBalcao" placeholder="0" min="0">
               </div>
             </div>
             <div class="field">
-              <label>🌡️ Temperatura média do dia</label>
+              <label>${lc("thermometer",14,"var(--purple)")} Temperatura média</label>
               <input class="inp" type="number" id="regTemp" placeholder="28" min="10" max="45">
             </div>
             <div class="field">
@@ -202,7 +202,7 @@ function renderPrevisao() {
               <input class="inp" id="regObs" placeholder="ex: Choveu à tarde, feriado...">
             </div>
             <button class="btn btn-primary" onclick="registrarVendas()" style="width:100%">
-              ✅ Registrar
+              ${lc("check",14,"#fff")} Registrar
             </button>
           </div>
         </div>
@@ -210,7 +210,7 @@ function renderPrevisao() {
         <!-- Histórico recente -->
         <div class="card">
           <div style="padding:14px 16px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-            <div style="font-size:.84rem;font-weight:700">📈 Histórico — ${DIAS[diaSemana]}s</div>
+            <div style="font-size:.84rem;font-weight:700">${lc("activity",15,"var(--purple)")} Histórico — ${DIAS[diaSemana]}s</div>
             <span style="font-size:.68rem;color:var(--muted)">${historico.length} registros</span>
           </div>
           <div style="padding:8px 0;max-height:320px;overflow-y:auto">
@@ -234,7 +234,7 @@ function renderPrevisao() {
 
         <!-- Link para configurações -->
         <button class="btn btn-outline btn-sm" onclick="abrirCfgPrevisao()" style="width:100%">
-          ⚙️ Configurar receita e parâmetros
+          ${lc("settings",14)} Configurar parâmetros
         </button>
 
       </div>
@@ -363,7 +363,7 @@ function recalcular() {
       <!-- Plano de batidas -->
       <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r10);overflow:hidden">
         <div style="padding:12px 14px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-          <div style="font-size:.8rem;font-weight:700">🍞 Plano de batidas de massa</div>
+          <div style="font-size:.8rem;font-weight:700">${lc("clipboard-list",15)} Plano de batidas de massa</div>
           <div style="font-size:.7rem;color:var(--muted)">${numBatidas} batida${numBatidas>1?'s':''} · ${totalFarinha.toFixed(1)}kg de farinha total</div>
         </div>
         ${batidas.map(b => `
@@ -472,7 +472,7 @@ function enviarWATime() {
 
   const msg = `🍕 *PLANO DE PRODUÇÃO — ${DIAS[hoje.getDay()].toUpperCase()}, ${hoje.toLocaleDateString('pt-BR')}*
 
-📊 *Previsão de vendas:*
+*Previsão de vendas:*
 • Pizzas pequenas: *${p.prevPequena}*
 • Pizzas grandes: *${p.prevGrande}*
 • Total: *${p.prevTotal} pizzas*

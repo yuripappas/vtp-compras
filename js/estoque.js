@@ -282,10 +282,10 @@ function _renderCarrinhoSumario() {
       <span style="font-size:.88rem;font-weight:800;color:var(--purple)">R$ ${fmt(total)}</span>
     </div>
     <button onclick="gerarListaCompras()" style="width:100%;padding:10px;background:var(--purple);color:#fff;border:none;border-radius:var(--r8);font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-      📋 Gerar Lista de Compras
+      ${lc("clipboard-list",15,"#fff")} Gerar Lista
     </button>
     <button onclick="limparCarrinho()" style="width:100%;padding:7px;background:none;color:var(--muted);border:1px solid var(--border);border-radius:var(--r8);font-size:.72rem;cursor:pointer;margin-top:6px">
-      🗑 Limpar carrinho
+      ${lc("trash",13)} Limpar carrinho
     </button>`;
 }
 
@@ -349,7 +349,7 @@ function parseCSV(file) {
             <span style="font-family:monospace">${d.oldQty} → <strong style="color:var(--purple)">${d.newQty}</strong></span>
           </div>`).join('')}
       </div>
-      <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="confirmImport()">✅ Confirmar importação</button>`;
+      <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="confirmImport()">${lc("check",14,"#fff")} Confirmar importação</button>`;
   };
   reader.readAsText(file, 'latin1');
 }

@@ -123,7 +123,7 @@ function renderDesperdicio() {
           const unit  = d.unidade || item?.unit || '';
           const custo = d.custo !== undefined ? d.custo : (item?.cost || 0) * d.qty;
           const tipo  = TIPOS_DESPERDICIO.find(t => t.id === d.tipo);
-          const origemBadge = d.origem === 'produto' ? '🍕 Produto' : d.origem === 'preparado' ? '🍳 Preparado' : '📦 Insumo';
+          const origemBadge = d.origem === 'produto' ? '${lc("tag",14)} Produto' : d.origem === 'preparado' ? '${lc("chef-hat",14)} Preparado' : '${lc("package",14)} Insumo';
           return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r10)">
             <div style="width:36px;height:36px;border-radius:var(--r8);background:${tipo?.bg || 'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${tipo?.icon || '📦'}</div>
             <div style="flex:1">
@@ -192,9 +192,9 @@ function setDespOrigem(origem) {
     const noteEl = document.getElementById('origemNote');
     if (noteEl) {
       const notes = {
-        insumo:    '📦 Insumos de compras — quantidade debitada do estoque automaticamente',
-        preparado: '🍳 Preparados de produção — quantidade debitada do estoque automaticamente',
-        produto:   '🍕 Produto final (pizza/bebida) — custo = preço de venda',
+        insumo:    '${lc("package",14)} Insumos de compras — quantidade debitada do estoque automaticamente',
+        preparado: '${lc("chef-hat",14)} Preparados de produção — quantidade debitada do estoque automaticamente',
+        produto:   '${lc("tag",14)} Produto final (pizza/bebida) — custo = preço de venda',
       };
       noteEl.textContent = notes[origem] || '';
     }

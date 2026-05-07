@@ -55,7 +55,7 @@ function renderCadInsumos() {
 
   const el = document.getElementById('cadInsumosGrid');
   if (!filt.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📦</div><div style="font-weight:700;margin-bottom:4px">Nenhum insumo cadastrado</div><div>Clique em "+ Novo Insumo" para começar</div></div>`;
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📦</div><div style="font-weight:700;margin-bottom:4px">Nenhum insumo cadastrado</div><div>Clique em "${lc("plus",13,"#fff")} Novo Insumo" para começar</div></div>`;
     return;
   }
 
@@ -89,7 +89,7 @@ function renderCadInsumos() {
                 <span style="color:var(--muted)">Custo ref.</span><span style="font-weight:600;color:var(--purple)">R$ ${fmt(item.cost)}</span>
               </div>
             </div>
-            ${sup ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:.68rem;color:var(--muted)">🏢 ${sup.name}</div>` : ''}
+            ${sup ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:.68rem;color:var(--muted)">${lc("store",12,"var(--muted)")} ${sup.name}</div>` : ''}
             ${b.length ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:7px">${b[0] ? `<span class="badge b-purple" style="font-size:.58rem">⭐ ${b[0]}</span>` : ''}${b.slice(1).map(x => `<span class="badge b-gray" style="font-size:.58rem">${x}</span>`).join('')}</div>` : ''}
           </div>`;
         }).join('')}
@@ -115,7 +115,7 @@ function openEditItem(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
   editItemId = id;
-  document.getElementById('itemModalTitle').textContent = `✏️ ${item.name}`;
+  document.getElementById('itemModalTitle').textContent = `${item.name}`;
   document.getElementById('fName').value  = item.name;
   document.getElementById('fCat').value   = item.cat;
   document.getElementById('fUnit').value  = item.unit;
@@ -195,7 +195,7 @@ function renderPreparoGrid() {
   const el    = document.getElementById('preparoGrid');
 
   if (!prods.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍳</div><div style="font-weight:700;margin-bottom:4px">Nenhum preparado cadastrado</div><div>Clique em "+ Novo Preparado" para começar</div></div>`;
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍳</div><div style="font-weight:700;margin-bottom:4px">Nenhum preparado cadastrado</div><div>Clique em "${lc("plus",13,"#fff")} Novo Preparado" para começar</div></div>`;
     return;
   }
 
@@ -245,7 +245,7 @@ function openEditPreparo(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
   editPreparoId = id;
-  document.getElementById('preparoModalTitle').textContent = `✏️ ${item.name}`;
+  document.getElementById('preparoModalTitle').textContent = `${item.name}`;
   document.getElementById('fpName').value   = item.name;
   document.getElementById('fpCode').value   = item.code  || '';
   document.getElementById('fpUnit').value   = item.unit;
@@ -327,8 +327,8 @@ function renderFornecedores() {
         <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditSup(${s.id})">✏️</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px">
-        ${s.phone ? `<div style="font-size:.74rem;color:var(--text2)">📞 ${s.phone}</div>` : ''}
-        ${s.email ? `<div style="font-size:.74rem;color:var(--text2)">✉️ ${s.email}</div>` : ''}
+        ${s.phone ? `<div style="font-size:.74rem;color:var(--text2)">${lc("phone",12,"var(--muted)")} ${s.phone}</div>` : ''}
+        ${s.email ? `<div style="font-size:.74rem;color:var(--text2)">${lc("mail",12,"var(--muted)")} ${s.email}</div>` : ''}
         ${s.cats  ? `<div style="font-size:.72rem;color:var(--muted)">${s.cats}</div>`  : ''}
       </div>
       ${si.length
@@ -353,7 +353,7 @@ function openEditSup(id) {
   const s = suppliers.find(x => x.id === id);
   if (!s) return;
   editSupId = id;
-  document.getElementById('supModalTitle').textContent = `✏️ ${s.name}`;
+  document.getElementById('supModalTitle').textContent = `${s.name}`;
   document.getElementById('sfName').value   = s.name   || '';
   document.getElementById('sfSeller').value = s.seller || '';
   document.getElementById('sfPhone').value  = s.phone  || '';
@@ -467,7 +467,7 @@ function renderCadProdutos() {
               <div style="font-size:.84rem;font-weight:700">${p.name}</div>
               <div style="font-size:.68rem;color:var(--muted)">Preço de venda: R$ ${fmt(p.price)} · ${p.active ? 'Ativo' : 'Inativo'}</div>
             </div>
-            <button class="btn btn-outline btn-sm" onclick="openProdModal(${p.id})">✏️ Editar</button>
+            <button class="btn btn-outline btn-sm" onclick="openProdModal(${p.id})">Editar</button>
           </div>`).join('')}
       </div>
     </div>`).join('') || `<div class="empty"><div class="empty-icon">🍕</div>Nenhum produto cadastrado</div>`;
@@ -478,7 +478,7 @@ let _editProdId = null;
 function openProdModal(id) {
   _editProdId = id || null;
   const p = id ? produtos.find(x => x.id === id) : null;
-  document.getElementById('fprodModalTitle').textContent = p ? `✏️ ${p.name}` : 'Novo Produto';
+  document.getElementById('fprodModalTitle').textContent = p ? `${p.name}` : 'Novo Produto';
   document.getElementById('fprodName').value   = p?.name   || '';
   document.getElementById('fprodCat').value    = p?.cat    || 'Pizza Pequena';
   document.getElementById('fprodPrice').value  = p?.price  || '';
@@ -583,7 +583,7 @@ function openSaborModal(tipoId, saborId) {
   const s    = saborId ? sabores.find(x => x.id === saborId) : null;
   const tipo = PIZZA_TIPOS.find(t => t.id === tipoId);
 
-  document.getElementById('fsabModalTitle').textContent = s ? `✏️ ${s.name}` : `Novo Sabor — ${tipo?.label}`;
+  document.getElementById('fsabModalTitle').textContent = s ? `${s.name}` : `Novo Sabor — ${tipo?.label}`;
   document.getElementById('fsabTipo').textContent  = tipo?.label || '';
   document.getElementById('fsabName').value        = s?.name || '';
   document.getElementById('fsabAcr').value         = s?.acr ?? '';

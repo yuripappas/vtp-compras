@@ -20,7 +20,7 @@ function _renderSemLista() {
       <div style="font-size:3rem;margin-bottom:16px">🛒</div>
       <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Nenhuma lista ativa</div>
       <div style="font-size:.82rem;color:var(--muted);margin-bottom:24px">Vá ao Estoque, adicione itens ao carrinho e clique em "Gerar Lista de Compras"</div>
-      <button class="btn btn-primary" onclick="goModule('estoque')">📦 Ir para o Estoque</button>
+      <button class="btn btn-primary" onclick="goModule('estoque')">${lc("package",16,"#fff")} Ir para o Estoque</button>
     </div>`;
 }
 
@@ -54,7 +54,7 @@ function _renderDashCompras() {
           </div>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-red btn-xs" onclick="encerrarListaManual()">✕ Encerrar</button>
+          <button class="btn btn-red btn-xs" onclick="encerrarListaManual()">${lc("x",13)} Encerrar</button>
         </div>
       ` : `<button class="btn btn-primary btn-sm" onclick="goModule('estoque')">🛒 Ir ao Estoque</button>`}
     </div>
@@ -91,7 +91,7 @@ function _renderEtapa1() {
 
   const prazoHtml = l.prazoCotacao ? `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--yellow-light);border:1.5px solid var(--yellow);border-radius:var(--r8);font-size:.75rem;margin-bottom:12px">
-      ⏰ Prazo: ${fmtDT(l.prazoCotacao)} · <span id="timer1" style="font-weight:700"></span>
+      ${lc("clock",14)} Prazo: ${fmtDT(l.prazoCotacao)} · <span id="timer1" style="font-weight:700"></span>
     </div>` : '';
 
   document.getElementById('comprasContent').innerHTML = `
@@ -107,8 +107,8 @@ function _renderEtapa1() {
           return `<button onclick="setStatusLista('${s}')"
             style="padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:600;border:1.5px solid ${isActive?st.color:'var(--border)'};background:${isActive?st.bg:'var(--surface)'};color:${isActive?st.color:'var(--muted)'};cursor:pointer">${st.label}</button>`;
         }).join('')}
-        <button class="btn btn-outline btn-sm" onclick="abrirPrazoCotacao()">⏰ Prazo</button>
-        <button class="btn btn-primary btn-sm" onclick="enviarTodasCotacoesWA()">💬 Enviar cotações WA</button>
+        <button class="btn btn-outline btn-sm" onclick="abrirPrazoCotacao()">${lc("clock",14)} Prazo</button>
+        <button class="btn btn-primary btn-sm" onclick="enviarTodasCotacoesWA()">${lc("message-circle",14,"#fff")} Enviar cotações WA</button>
       </div>
     </div>
 
@@ -118,7 +118,7 @@ function _renderEtapa1() {
       <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)">
         <button onclick="abrirAddItemManual()"
           style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r8);border:1.5px solid var(--purple);background:white;color:var(--purple);font-size:.76rem;font-weight:700;cursor:pointer">
-          + Adicionar item
+          ${lc("plus",14,"var(--purple)")} Adicionar item
         </button>
         <div style="font-size:.68rem;color:var(--muted)">Adicione fornecedores por item para cotar</div>
       </div>
@@ -153,7 +153,7 @@ function _renderEtapa1() {
 
     <div style="display:flex;justify-content:flex-end">
       <button class="btn btn-primary" onclick="avancarParaAprovacao()" style="padding:12px 28px;font-size:.88rem">
-        Enviar para aprovação →
+        Enviar para aprovação ${lc("arrow-right",14,"#fff")}
       </button>
     </div>`;
 
@@ -186,7 +186,7 @@ function _rowsItem(i) {
         ${cotacoes.length === 0 ? `<span style="font-size:.72rem;color:var(--muted);font-style:italic">Nenhum fornecedor — será compra presencial</span>` : ''}
         <button onclick="abrirAddFornecedor(${i.id})"
           style="display:flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:1.5px dashed var(--purple);background:transparent;color:var(--purple);font-size:.7rem;font-weight:600;cursor:pointer">
-          + Fornecedor
+          ${lc("plus",13,"var(--purple)")} Fornecedor
         </button>
         ${cotacoes.length > 0 && i.fornecedorId ? `
           <button onclick="enviarCotacaoWAItem(${i.id})"
@@ -209,7 +209,7 @@ function _rowsItem(i) {
         <div style="display:flex;align-items:center;gap:6px">
           <div style="width:5px;height:5px;border-radius:50%;background:${cot.respondido?'var(--green)':'var(--muted)'};flex-shrink:0"></div>
           <span style="font-size:.76rem;font-weight:600;color:${isBest&&cot.respondido?'var(--green)':'var(--text2)'}">${sup?.name||'—'}</span>
-          ${isBest&&cot.respondido?'<span style="font-size:.6rem;font-weight:700;color:var(--green);background:var(--green-light);padding:1px 6px;border-radius:10px">✓ Melhor</span>':''}
+          ${isBest&&cot.respondido?'<span style="font-size:.6rem;font-weight:700;color:var(--green);background:var(--green-light);padding:1px 6px;border-radius:10px">Melhor</span>':''}
         </div>
         ${sup?.phone?`<div style="font-size:.62rem;color:var(--muted);margin-top:1px;margin-left:11px">📞 ${sup.phone}</div>`:''}
       </td>
@@ -258,7 +258,7 @@ function _montaMsgCotacaoForn(sup, item) {
   // Busca todos os itens deste fornecedor
   const itensForn = l.itens.filter(i => (i.cotacoes||[]).some(c => c.supId === sup.id));
   const linhas = itensForn.map(i => `• ${i.nome}: ${fmt(i.qtdSelecionada)} ${i.unidade}`).join('\n');
-  const prazo  = l.prazoCotacao ? `\n⏰ Prazo para cotação: ${fmtDT(l.prazoCotacao)}` : '';
+  const prazo  = l.prazoCotacao ? `\n${lc("clock",14)} Prazo para cotação: ${fmtDT(l.prazoCotacao)}` : '';
   return `Olá ${sup.seller||sup.name}! 👋\n\nA *Vai Ter Pizza!* solicita sua cotação (${l.codigo}):\n\n${linhas}${prazo}\n\nPor favor, responda com:\n✅ Preço unitário de cada item\n✅ Prazo de entrega\n✅ Condição de pagamento\n\nAguardamos seu retorno! 🍕`;
 }
 
@@ -455,7 +455,7 @@ function abrirPrazoCotacao() {
   _listaAtual.prazoCotacao = new Date(val).toISOString();
   saveListas();
   _renderEtapa1();
-  toast('⏰ Prazo definido!');
+  toast('${lc("clock",14)} Prazo definido!');
 }
 
 function avancarParaAprovacao() {
@@ -480,7 +480,7 @@ function avancarParaAprovacao() {
   saveListas();
   _renderDashCompras();
   _renderEtapa2();
-  toast('📤 Lista enviada para aprovação!');
+  toast('Lista enviada para aprovação!');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -501,9 +501,9 @@ function _renderEtapa2() {
         <div style="font-size:.72rem;color:var(--muted)">Revise e aprove os itens antes da compra</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="_renderEtapa1()">← Voltar</button>
-        <button class="btn btn-red btn-sm" onclick="reprovarLista()">✕ Reprovar</button>
-        <button class="btn btn-primary btn-sm" onclick="aprovarLista()">✅ Aprovar lista</button>
+        <button class="btn btn-outline btn-sm" onclick="_renderEtapa1()">${lc("arrow-left",14)} Voltar</button>
+        <button class="btn btn-red btn-sm" onclick="reprovarLista()">${lc("x",13)} Reprovar</button>
+        <button class="btn btn-primary btn-sm" onclick="aprovarLista()">${lc("check-circle",14,"#fff")} Aprovar lista</button>
       </div>
     </div>
 
@@ -562,9 +562,9 @@ function _cardAprovacaoItem(i, isPresencial) {
         </div>
         <div style="display:flex;gap:5px">
           <button onclick="aprovarItem2(${i.id})"
-            style="padding:6px 12px;border-radius:var(--r8);border:1.5px solid ${isAprov?'var(--green)':'var(--border)'};background:${isAprov?'var(--green)':'var(--surface)'};color:${isAprov?'#fff':'var(--text2)'};font-size:.72rem;font-weight:600;cursor:pointer">✓ Aprovar</button>
+            style="padding:6px 12px;border-radius:var(--r8);border:1.5px solid ${isAprov?'var(--green)':'var(--border)'};background:${isAprov?'var(--green)':'var(--surface)'};color:${isAprov?'#fff':'var(--text2)'};font-size:.72rem;font-weight:600;cursor:pointer">${lc("check",13)} Aprovar</button>
           <button onclick="reprovarItem2(${i.id})"
-            style="padding:6px 12px;border-radius:var(--r8);border:1.5px solid ${isReprov?'var(--red)':'var(--border)'};background:${isReprov?'var(--red)':'var(--surface)'};color:${isReprov?'#fff':'var(--text2)'};font-size:.72rem;font-weight:600;cursor:pointer">✕ Reprovar</button>
+            style="padding:6px 12px;border-radius:var(--r8);border:1.5px solid ${isReprov?'var(--red)':'var(--border)'};background:${isReprov?'var(--red)':'var(--surface)'};color:${isReprov?'#fff':'var(--text2)'};font-size:.72rem;font-weight:600;cursor:pointer">${lc("x",13)} Reprovar</button>
         </div>
       </div>
     </div>
@@ -643,8 +643,8 @@ function _renderEtapa3() {
         <div style="font-size:.72rem;color:var(--muted)">Total aprovado: <strong style="color:var(--purple)">R$ ${fmt(l.valorAprovado)}</strong></div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm" onclick="_renderEtapa2()">← Aprovação</button>
-        <button class="btn btn-primary btn-sm" onclick="avancarParaRecebimento()">Registrar recebimento →</button>
+        <button class="btn btn-outline btn-sm" onclick="_renderEtapa2()">${lc("arrow-left",14)} Aprovação</button>
+        <button class="btn btn-primary btn-sm" onclick="avancarParaRecebimento()">Registrar recebimento ${lc("arrow-right",14,"#fff")}</button>
       </div>
     </div>
 
@@ -660,8 +660,8 @@ function _renderEtapa3() {
           </div>
           <div style="display:flex;align-items:center;gap:10px">
             <div style="font-size:1rem;font-weight:800;color:var(--purple)">R$ ${fmt(total)}</div>
-            ${sup?.phone?`<a href="https://wa.me/55${(sup.phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(ocText)}" target="_blank" class="btn btn-wa btn-sm">💬 Enviar OC</a>`:''}
-            <button class="btn btn-outline btn-sm" onclick="copiarOC3(${idx})">📋 Copiar</button>
+            ${sup?.phone?`<a href="https://wa.me/55${(sup.phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(ocText)}" target="_blank" class="btn btn-wa btn-sm">${lc("send",14,"#fff")} Enviar OC</a>`:''}
+            <button class="btn btn-outline btn-sm" onclick="copiarOC3(${idx})">${lc("copy",14)} Copiar</button>
           </div>
         </div>
         ${itens.map((i,iIdx) => `
@@ -750,8 +750,8 @@ function _renderEtapa4() {
         <div style="font-size:.72rem;color:var(--muted)">${conferidos} de ${total} itens conferidos</div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm" onclick="_renderEtapa3()">← OC</button>
-        <button class="btn btn-primary btn-sm" onclick="concluirLista()" ${conferidos<total?'disabled':''}>✅ Concluir lista</button>
+        <button class="btn btn-outline btn-sm" onclick="_renderEtapa3()">${lc("arrow-left",14)} OC</button>
+        <button class="btn btn-primary btn-sm" onclick="concluirLista()" ${conferidos<total?'disabled':''}>${lc("check-circle",14,"#fff")} Concluir lista</button>
       </div>
     </div>
     <div style="margin-bottom:16px">
@@ -848,7 +848,7 @@ function concluirLista() {
   _listaAtual = getListaAtiva();
   renderDashboard();
   renderComprasModule();
-  toast('🎉 Lista concluída! Estoque atualizado.');
+  toast('Lista concluída! Estoque atualizado.');
 }
 
 // ══════════════════════════════════════════════════════════════
