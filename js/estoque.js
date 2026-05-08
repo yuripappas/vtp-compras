@@ -315,49 +315,121 @@ function handleFile(inp) { if (inp.files[0]) parseCSV(inp.files[0]); }
 function parseCSV(file) {
   const reader = new FileReader();
   reader.onload = e => {
-    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+    // Remove BOM (UTF-8 com BOM do Cardápio Web)
+    let text = e.target.result.replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     if (lines.length < 2) { toast('CSV inválido', 'err'); return; }
 
-    const header = lines[0].split(';').map(h => h.trim().toLowerCase().replace(/"/g, ''));
-    const codeIdx = header.findIndex(h => h.includes('código') || h.includes('codigo') || h === 'code');
-    const qtyIdx  = header.findIndex(h => h.includes('quant') || h.includes('atual') || h === 'qty');
-    const nameIdx = header.findIndex(h => h.includes('nome') || h.includes('produto') || h === 'name');
+    const sep = lines[0].includes(';') ? ';' : ',';
 
-    if (codeIdx === -1 && nameIdx === -1) { toast('CSV sem coluna de código ou nome', 'err'); return; }
+    // Normaliza header: remove acentos, aspas, espaços extras
+    const norm = s => s.trim().replace(/"/g,'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const header = lines[0].split(sep).map(norm);
+
+    // Colunas do Cardápio Web:
+    // Insumo | Categoria | Cód. interno | Medida | Preço de custo |
+    // Custo do estoque | Estoque mínimo | Estoque atual | Situação do estoque
+    const col = (...keys) => header.findIndex(h => keys.some(k => h.includes(norm(k))));
+
+    const nameIdx = col('insumo','nome','produto');
+    const codeIdx = col('cod. interno','codigo interno','cod interno','code');
+    const qtyIdx  = col('estoque atual','atual','qty');
+    const minIdx  = col('estoque minimo','minimo','min');
+    const costIdx = col('preco de custo','custo','price');
+    const unitIdx = col('medida','unidade','unit');
+
+    if (nameIdx === -1 && codeIdx === -1) {
+      toast('CSV não reconhecido — verifique se é o relatório do Cardápio Web', 'err');
+      return;
+    }
+
+    const parseMoney = v => parseFloat((v||'').replace(/[R$\s]/g,'').replace(',','.')) || 0;
+    const parseNum   = v => parseFloat((v||'').replace(',','.'));
 
     importData = [];
+    const naoEncontrados = [];
+
     lines.slice(1).forEach(line => {
-      const cols = line.split(';').map(c => c.trim().replace(/"/g, ''));
-      const code = codeIdx >= 0 ? cols[codeIdx] : '';
-      const name = nameIdx >= 0 ? cols[nameIdx] : '';
-      const qty  = qtyIdx  >= 0 ? parseFloat(cols[qtyIdx]?.replace(',', '.')) : NaN;
-      const item = items.find(i => (code && i.code === code) || (name && i.name.toLowerCase() === name.toLowerCase()));
-      if (item && !isNaN(qty)) {
-        importData.push({ id: item.id, name: item.name, oldQty: item.qty, newQty: parseFloat(qty.toFixed(3)) });
+      const cols = line.split(sep).map(c => c.trim().replace(/"/g,''));
+      const name = nameIdx >= 0 ? cols[nameIdx] || '' : '';
+      const code = codeIdx >= 0 ? cols[codeIdx] || '' : '';
+      const qty  = qtyIdx  >= 0 ? parseNum(cols[qtyIdx])  : NaN;
+      const min  = minIdx  >= 0 ? parseNum(cols[minIdx])  : NaN;
+      const cost = costIdx >= 0 ? parseMoney(cols[costIdx]): 0;
+
+      if (!name && !code) return;
+      if (isNaN(qty)) return;
+
+      // Casa pelo código primeiro, depois pelo nome exato
+      const item = items.find(i =>
+        (code && i.code && i.code.toString() === code.toString()) ||
+        (name && i.name.toLowerCase().trim() === name.toLowerCase().trim())
+      );
+
+      if (item) {
+        importData.push({
+          id: item.id,
+          name: item.name,
+          oldQty:  item.qty,
+          newQty:  parseFloat(qty.toFixed(3)),
+          oldMin:  item.min,
+          newMin:  !isNaN(min) ? parseFloat(min.toFixed(3)) : item.min,
+          oldCost: item.cost,
+          newCost: cost > 0 ? cost : item.cost,
+        });
+      } else if (name) {
+        naoEncontrados.push(name);
       }
     });
 
     const prev = document.getElementById('importPreview');
     if (!prev) return;
-    if (!importData.length) { prev.innerHTML = '<div style="color:var(--red)">Nenhum item correspondente encontrado.</div>'; return; }
+
+    if (!importData.length) {
+      prev.innerHTML = `
+        <div style="color:var(--red);font-size:.78rem;margin-bottom:8px">
+          Nenhum item correspondente encontrado.<br>
+          Verifique se os códigos internos do CSV batem com os cadastrados.
+        </div>
+        ${naoEncontrados.length ? `<div style="font-size:.7rem;color:var(--muted)">Itens no CSV: ${naoEncontrados.slice(0,6).join(', ')}${naoEncontrados.length>6?'...':''}</div>` : ''}`;
+      return;
+    }
+
     prev.innerHTML = `
-      <div style="font-size:.75rem;font-weight:600;margin-bottom:8px">${importData.length} itens encontrados:</div>
-      <div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:.75rem;font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between">
+        <span style="color:var(--green)">${importData.length} itens reconhecidos</span>
+        ${naoEncontrados.length ? `<span style="color:var(--muted)">${naoEncontrados.length} não encontrados</span>` : ''}
+      </div>
+      <div style="max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
         ${importData.map(d => `
-          <div style="display:flex;justify-content:space-between;padding:5px 8px;background:var(--surface);border-radius:var(--r6);font-size:.73rem">
-            <span>${d.name}</span>
-            <span style="font-family:monospace">${d.oldQty} → <strong style="color:var(--purple)">${d.newQty}</strong></span>
+          <div style="padding:7px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r6)">
+            <div style="font-size:.76rem;font-weight:600;margin-bottom:3px">${d.name}</div>
+            <div style="display:flex;gap:12px;font-family:monospace;font-size:.7rem;color:var(--muted)">
+              <span>Qtd: <strong>${d.oldQty}</strong> → <strong style="color:var(--purple)">${d.newQty}</strong></span>
+              ${d.newMin !== d.oldMin ? `<span>Mín: ${d.oldMin}→<strong style="color:var(--purple)">${d.newMin}</strong></span>` : ''}
+              ${d.newCost !== d.oldCost ? `<span>Custo: R$${d.oldCost}→<strong style="color:var(--green)">R$${d.newCost}</strong></span>` : ''}
+            </div>
           </div>`).join('')}
       </div>
-      <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="confirmImport()">${lc("check",14,"#fff")} Confirmar importação</button>`;
+      ${naoEncontrados.length ? `
+        <div style="font-size:.68rem;color:var(--muted);background:var(--surface2);border-radius:var(--r6);padding:6px 10px;margin-bottom:8px">
+          Não encontrados (${naoEncontrados.length}): ${naoEncontrados.slice(0,8).join(', ')}${naoEncontrados.length>8?'...':''}
+        </div>` : ''}
+      <button class="btn btn-primary" style="width:100%" onclick="confirmImport()">
+        ${lc('check',14,'#fff')} Confirmar importação de ${importData.length} itens
+      </button>`;
   };
-  reader.readAsText(file, 'latin1');
+  reader.readAsText(file, 'UTF-8');
 }
 
 function confirmImport() {
   importData.forEach(d => {
     const item = items.find(i => i.id === d.id);
-    if (item) item.qty = d.newQty;
+    if (!item) return;
+    item.qty  = d.newQty;
+    if (d.newMin  !== undefined) item.min  = d.newMin;
+    if (d.newCost !== undefined && d.newCost > 0) item.cost = d.newCost;
   });
   saveI();
   closeModal('ovImport');
