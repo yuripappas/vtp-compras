@@ -215,7 +215,7 @@ function clearPrepFiltro() {
 }
 
 function zerarCicloPrepara() {
-  if (!confirm(`${lc("alert-triangle",14,"var(--yellow)")}️ Zerar ciclo de pré-produção?
+  if (!confirm(`${lc("alert-triangle",14,"var(--yellow)")} Zerar ciclo de pré-produção?
 
 Esta ação vai:
 • Zerar a quantidade atual de TODOS os preparados (produção interna)
@@ -478,11 +478,11 @@ function renderFornecedores() {
           <div style="font-size:.88rem;font-weight:700">${s.name}</div>
           ${s.seller ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">${lc("user",14,"currentColor")} ${s.seller}</div>` : ''}
         </div>
-        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditSup(${s.id})">${lc("edit-2",13,"currentColor")}️</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditSup(${s.id})">${lc("edit-2",13,"currentColor")}</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px">
         ${s.phone ? `<div style="font-size:.74rem;color:var(--text2)">${lc("phone",13,"var(--muted)")} ${s.phone}</div>` : ''}
-        ${s.email ? `<div style="font-size:.74rem;color:var(--text2)">${lc("mail",14,"currentColor")}️ ${s.email}</div>` : ''}
+        ${s.email ? `<div style="font-size:.74rem;color:var(--text2)">${lc("mail",14,"currentColor")} ${s.email}</div>` : ''}
         ${s.cats  ? `<div style="font-size:.72rem;color:var(--muted)">${s.cats}</div>` : ''}
       </div>
       ${si.length
@@ -509,7 +509,7 @@ function openEditSup(id) {
   const s = suppliers.find(x => x.id === id);
   if (!s) return;
   editSupId = id;
-  document.getElementById('supModalTitle').textContent = `${lc("edit-2",13,"currentColor")}️ ${s.name}`;
+  document.getElementById('supModalTitle').textContent = `${lc("edit-2",13,"currentColor")} ${s.name}`;
   document.getElementById('sfName').value   = s.name   || '';
   document.getElementById('sfSeller').value = s.seller || '';
   document.getElementById('sfPhone').value  = s.phone  || '';
@@ -647,95 +647,300 @@ function deleteSup() {
 // RELATÓRIOS
 // ══════════════════════════════════════════════════════════════
 
-function clearRelFiltro() {
-  document.getElementById('relDe').value  = '';
-  document.getElementById('relAte').value = '';
-  renderRelatorios();
-}
-
 function renderRelatorios() {
-  const de  = document.getElementById('relDe')?.value  || '';
-  const ate = document.getElementById('relAte')?.value || '';
+  const el = document.getElementById('relatoriosContent');
+  if (!el) return;
 
-  // Filtra histórico por período
-  const hist = cycleHistory.filter(c => {
-    const d = (c.date || '').slice(0, 10);
-    if (de  && d < de)  return false;
-    if (ate && d > ate) return false;
-    return true;
+  // ── Coleta de dados ──────────────────────────────────────────
+  const now      = new Date();
+  const mesAtual = now.toISOString().slice(0,7); // "YYYY-MM"
+
+  // Compras concluídas
+  const listasConc  = listas.filter(l => l.status === 'concluida');
+  const totalGasto  = listasConc.reduce((s,l) => s+(l.valorFinal||0), 0);
+  const totalEcon   = listasConc.reduce((s,l) => s+Math.max(0,(l.valorEstimado||0)-(l.valorFinal||0)), 0);
+
+  // Estoque
+  const insumos     = items.filter(i => !i.isProd);
+  const criticos    = insumos.filter(i => gst(i) === 'crit').length;
+  const baixos      = insumos.filter(i => gst(i) === 'warn').length;
+  const custoCriticos = insumos.filter(i => gst(i) === 'crit').reduce((s,i) => s + gneed(i)*i.cost, 0);
+
+  // Desperdício
+  const despTotal   = desperdicios.reduce((s,d) => s + (d.qty*(d.precoUnit||d.custo||0)), 0);
+  const despMes     = desperdicios.filter(d => (d.date||'').slice(0,7) === mesAtual)
+                        .reduce((s,d) => s+(d.qty*(d.precoUnit||d.custo||0)), 0);
+
+  // Pré-produção
+  const prodOrdens  = ordens.filter(o => !o.archived);
+  const prodFeitas  = prodOrdens.filter(o => o.status === 'produzido').length;
+  const prodPend    = prodOrdens.filter(o => o.status === 'pendente').length;
+
+  // Insights automáticos
+  const insights = [];
+  if (criticos > 0)
+    insights.push({ icon:'alert-circle', cor:'var(--red)', bg:'var(--red-light)',
+      txt: `${criticos} insumo(s) em nível crítico — necessidade de R$${fmt(custoCriticos)}` });
+  if (despMes > 500)
+    insights.push({ icon:'trending-up', cor:'var(--orange-dark)', bg:'var(--orange-light)',
+      txt: `Desperdício este mês: R$${fmt(despMes)} — acima de R$500` });
+  if (prodPend > 5)
+    insights.push({ icon:'clock', cor:'var(--yellow)', bg:'var(--yellow-light)',
+      txt: `${prodPend} ordens de produção pendentes no pré-preparo` });
+  if (totalEcon > 0)
+    insights.push({ icon:'trending-down', cor:'var(--green)', bg:'var(--green-light)',
+      txt: `Economia total em compras: R$${fmt(totalEcon)} vs. estimativas` });
+  if (suppliers.filter(s=>!s.phone).length > 0)
+    insights.push({ icon:'phone-off', cor:'var(--muted)', bg:'var(--surface2)',
+      txt: `${suppliers.filter(s=>!s.phone).length} fornecedor(es) sem telefone cadastrado` });
+
+  // Top insumos por custo estimado de reposição
+  const topNeed = [...insumos].filter(i=>gneed(i)>0)
+    .sort((a,b) => gneed(b)*b.cost - gneed(a)*a.cost).slice(0,5);
+
+  // Desperdício por tipo
+  const despPorTipo = {};
+  desperdicios.forEach(d => {
+    if (!despPorTipo[d.tipo]) despPorTipo[d.tipo] = 0;
+    despPorTipo[d.tipo] += d.qty*(d.precoUnit||d.custo||0);
   });
+  const despTipoMax = Math.max(...Object.values(despPorTipo), 1);
 
-  const countEl = document.getElementById('relCicloCount');
-  if (countEl) countEl.textContent = de || ate ? `${hist.length} resultado(s)` : '';
+  // Compras por mês (últimos 6 meses)
+  const comprasMes = {};
+  for (let i=5; i>=0; i--) {
+    const d = new Date(now); d.setMonth(d.getMonth()-i);
+    const k = d.toISOString().slice(0,7);
+    comprasMes[k] = listasConc.filter(l=>(l.dataConclusao||'').slice(0,7)===k)
+      .reduce((s,l)=>s+(l.valorFinal||0),0);
+  }
+  const compMax = Math.max(...Object.values(comprasMes),1);
 
-  // Histórico de ciclos
-  document.getElementById('relHistorico').innerHTML = hist.length
-    ? hist.slice().reverse().map(c => `
-        <div class="hist-row">
-          <div style="flex:1">
-            <div style="font-size:.82rem;font-weight:700">${c.id}</div>
-            <div style="font-size:.68rem;color:var(--muted)">${fmtD(c.date)} · ${c.items} itens · ${c.sups} fornecedores</div>
+  // Top fornecedores por volume
+  const supVolume = suppliers.map(s => {
+    const vol = listasConc.reduce((tot,l) =>
+      tot + (l.itens||[]).filter(i=>i.fornecedorId===s.id)
+        .reduce((s2,i)=>s2+(i.qtdRecebida||0)*(i.precoUnitFinal||i.precoUnitEstimado||0),0), 0);
+    return { s, vol };
+  }).filter(x=>x.vol>0).sort((a,b)=>b.vol-a.vol).slice(0,5);
+
+  const supVolMax = supVolume[0]?.vol || 1;
+
+  el.innerHTML = \`
+    <!-- KPIs rápidos -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px">
+      \${[
+        {icon:'dollar-sign', label:'Total em compras',  val:'R$'+fmt(totalGasto),   cor:'var(--purple)', bg:'var(--purple-xlight)'},
+        {icon:'trending-down',label:'Economia gerada',  val:'R$'+fmt(totalEcon),    cor:'var(--green)',  bg:'var(--green-light)'},
+        {icon:'trash-2',     label:'Custo desperdício', val:'R$'+fmt(despTotal),    cor:'var(--red)',    bg:'var(--red-light)'},
+        {icon:'alert-circle',label:'Itens críticos',    val:criticos+' insumos',    cor:'var(--red)',    bg:'var(--red-light)'},
+        {icon:'check-square',label:'Produções feitas',  val:prodFeitas+' ordens',   cor:'var(--green)',  bg:'var(--green-light)'},
+        {icon:'shopping-bag',label:'Listas concluídas', val:listasConc.length+'',   cor:'var(--purple)', bg:'var(--purple-xlight)'},
+      ].map(k=>\`
+        <div style="background:\${k.bg};border:1.5px solid \${k.cor}22;border-radius:var(--r10);padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            \${lc(k.icon,12,k.cor)}
+            <span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:\${k.cor}">\${k.label}</span>
           </div>
-          <div style="text-align:right">
-            <div style="font-family:monospace;font-size:.82rem;font-weight:700;color:var(--purple)">R$${fmt(c.total)}</div>
-            <div style="font-size:.65rem;color:var(--green)">↓ R$${fmt(c.economia)}</div>
-          </div>
-        </div>`).join('')
-    : `<div class="empty" style="padding:24px"><div class="empty-icon" style="font-size:0">${lc("clipboard-list",14,"currentColor")}</div>${de || ate ? 'Nenhum ciclo encontrado para este período.' : 'Nenhum ciclo finalizado ainda.'}</div>`;
-
-  // Evolução de preços (top 5 insumos por custo)
-  const top5 = [...items].filter(i => !i.isProd).sort((a, b) => b.cost - a.cost).slice(0, 5);
-  document.getElementById('relPrecos').innerHTML = top5.length
-    ? `<div style="display:flex;flex-direction:column;gap:10px">
-        ${top5.map(i => `
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div>
-              <div style="font-size:.8rem;font-weight:600">${i.name}</div>
-              <div style="font-size:.65rem;color:var(--muted)">${i.cat}</div>
-            </div>
-            <div style="font-family:monospace;font-weight:700">R$${fmt(i.cost)}</div>
-          </div>`).join('')}
-       </div>`
-    : `<div class="empty" style="padding:20px">Sem dados.</div>`;
-
-  // Desempenho por fornecedor
-  document.getElementById('relFornecedores').innerHTML = suppliers.length
-    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
-        ${suppliers.map(s => {
-          const si = items.filter(i => { const ids=i.supIds?.length?i.supIds:(i.supId?[i.supId]:[]); return ids.includes(s.id); });
-          return `<div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r10);padding:12px">
-            <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">${s.name}</div>
-            ${s.seller ? `<div style="font-size:.7rem;color:var(--muted)">${lc("user",14,"currentColor")} ${s.seller}</div>` : ''}
-            <div style="font-size:.7rem;color:var(--muted);margin-top:4px">${si.length} insumo(s) vinculado(s)</div>
-            ${si.length ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px">${si.slice(0, 3).map(i => `<span class="badge b-purple" style="font-size:.58rem">${i.name}</span>`).join('')}${si.length > 3 ? `<span class="badge b-gray" style="font-size:.58rem">+${si.length - 3}</span>` : ''}</div>` : ''}
-          </div>`;
-        }).join('')}
-       </div>`
-    : `<div class="empty" style="padding:20px">Nenhum fornecedor cadastrado.</div>`;
-}
-
-// ══════════════════════════════════════════════════════════════
-// USUÁRIOS
-// ══════════════════════════════════════════════════════════════
-
-function renderUsuarios() {
-  document.getElementById('userList').innerHTML = users.map(u => {
-    const p = PERMS[u.role];
-    return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r12);padding:16px;display:flex;align-items:center;gap:14px">
-      <div style="width:44px;height:44px;border-radius:50%;background:${u.role === 'gerente' ? 'var(--purple)' : u.role === 'supervisor' ? 'var(--orange-dark)' : 'var(--green)'};display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:#fff;flex-shrink:0">${u.name.charAt(0)}</div>
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-          <span style="font-size:.86rem;font-weight:700">${u.name}</span>
-          <span class="badge" style="background:${p.bg};color:${p.color}">${p.label}</span>
+          <div style="font-size:1.1rem;font-weight:800;color:\${k.cor}">\${k.val}</div>
         </div>
-        <div style="font-size:.72rem;color:var(--muted)">${u.email}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px">
-          ${p.perms.map(perm => `<span class="badge b-gray" style="font-size:.6rem">${lc("check",13,"currentColor")} ${perm}</span>`).join('')}
+      \`).join('')}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <!-- Insights automáticos -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">\${lc('zap',14,'var(--purple)')} Insights Automáticos</div></div>
+        <div class="card-body" style="padding:0">
+          \${insights.length ? insights.map(ins=>\`
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)">
+              <div style="width:28px;height:28px;border-radius:50%;background:\${ins.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                \${lc(ins.icon,13,ins.cor)}
+              </div>
+              <div style="font-size:.76rem;color:var(--text);line-height:1.4;padding-top:4px">\${ins.txt}</div>
+            </div>
+          \`).join('') : \`
+            <div class="empty" style="padding:24px">
+              \${lc('check-circle',20,'var(--green)')}
+              <div style="margin-top:8px;font-size:.8rem">Tudo dentro do esperado!</div>
+            </div>
+          \`}
         </div>
       </div>
-      <button class="btn btn-outline btn-xs" onclick="openEditUser(${u.id})">${lc("edit-2",13,"currentColor")}️</button>
-    </div>`;
-  }).join('');
+
+      <!-- Compras por mês -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">\${lc('bar-chart-2',14,'var(--purple)')} Compras — Últimos 6 meses</div></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            \${Object.entries(comprasMes).map(([mes, val])=>{
+              const pct = Math.round(val/compMax*100);
+              const [y,m] = mes.split('-');
+              const nome = new Date(+y,+m-1,1).toLocaleString('pt-BR',{month:'short'}).replace('.','');
+              return \`<div style="display:flex;align-items:center;gap:8px">
+                <div style="font-size:.7rem;color:var(--muted);width:30px;text-align:right;flex-shrink:0">\${nome}</div>
+                <div style="flex:1;height:20px;background:var(--border);border-radius:4px;overflow:hidden">
+                  <div style="height:100%;width:\${pct}%;background:linear-gradient(90deg,var(--purple),var(--lilac));border-radius:4px;transition:width .4s"></div>
+                </div>
+                <div style="font-size:.7rem;font-family:monospace;width:70px;text-align:right;font-weight:600;color:var(--purple)">
+                  \${val>0?'R$'+fmt(val):'—'}
+                </div>
+              </div>\`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <!-- Desperdício por tipo -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">\${lc('trash-2',14,'var(--red)')} Desperdício por Tipo de Ocasião</div></div>
+        <div class="card-body">
+          \${Object.keys(despPorTipo).length ? \`
+            <div style="display:flex;flex-direction:column;gap:9px">
+              \${Object.entries(despPorTipo).sort((a,b)=>b[1]-a[1]).map(([tipo,val])=>{
+                const td = typeof TIPOS_DESPERDICIO !== 'undefined' ? TIPOS_DESPERDICIO.find(t=>t.id===tipo) : null;
+                const pct = Math.round(val/despTipoMax*100);
+                return \`<div style="display:flex;align-items:center;gap:8px">
+                  <div style="font-size:.7rem;color:var(--muted);width:80px;text-align:right;flex-shrink:0">\${td?.label||tipo}</div>
+                  <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+                    <div style="height:100%;width:\${pct}%;background:var(--red);border-radius:4px"></div>
+                  </div>
+                  <div style="font-size:.7rem;font-family:monospace;width:64px;text-align:right;color:var(--red)">R$\${fmt(val)}</div>
+                </div>\`;
+              }).join('')}
+            </div>
+          \` : '<div class="empty" style="padding:20px">Sem registros de desperdício.</div>'}
+        </div>
+      </div>
+
+      <!-- Pré-produção: eficiência -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">\${lc('chef-hat',14,'var(--purple)')} Pré-produção — Status</div></div>
+        <div class="card-body">
+          \${(() => {
+            const total = prodOrdens.length;
+            if (!total) return '<div class="empty" style="padding:20px">Nenhuma ordem registrada.</div>';
+            const pct = total > 0 ? Math.round(prodFeitas/total*100) : 0;
+            const itensProd = items.filter(i=>i.isProd);
+            return \`
+              <div style="margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                  <span style="font-size:.74rem;color:var(--muted)">Ordens concluídas</span>
+                  <span style="font-size:.74rem;font-weight:700;color:\${pct>70?'var(--green)':'var(--orange-dark)'}">\${pct}%</span>
+                </div>
+                <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+                  <div style="height:100%;width:\${pct}%;background:\${pct>70?'var(--green)':'var(--yellow)'};border-radius:4px;transition:width .4s"></div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+                \${[
+                  {label:'Feitas',   val:prodFeitas, cor:'var(--green)'},
+                  {label:'Pendentes',val:prodPend,   cor:'var(--orange-dark)'},
+                  {label:'Total',    val:total,      cor:'var(--purple)'},
+                ].map(x=>\`
+                  <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:var(--r8)">
+                    <div style="font-size:1rem;font-weight:800;color:\${x.cor}">\${x.val}</div>
+                    <div style="font-size:.62rem;color:var(--muted)">\${x.label}</div>
+                  </div>
+                \`).join('')}
+              </div>
+              <div style="font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:6px">Preparados críticos</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                \${itensProd.filter(i=>gst(i)==='crit').map(i=>\`
+                  <span class="badge b-red" style="font-size:.62rem">\${i.name}</span>
+                \`).join('') || '<span style="font-size:.74rem;color:var(--green)">Nenhum crítico</span>'}
+              </div>
+            \`;
+          })()}
+        </div>
+      </div>
+    </div>
+
+    <!-- Top insumos necessários + Top fornecedores -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">\${lc('alert-triangle',14,'var(--yellow)')} Maiores Necessidades de Reposição</div></div>
+        <div class="card-body">
+          \${topNeed.length ? topNeed.map((i,idx)=>\`
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+              <div style="width:22px;height:22px;border-radius:50%;background:\${idx===0?'var(--red-light)':'var(--surface2)'};
+                color:\${idx===0?'var(--red)':'var(--muted)'};font-size:.68rem;font-weight:800;
+                display:flex;align-items:center;justify-content:center;flex-shrink:0">\${idx+1}</div>
+              <div style="flex:1">
+                <div style="font-size:.78rem;font-weight:600">\${i.name}</div>
+                <div style="font-size:.64rem;color:var(--muted)">\${i.cat}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:.76rem;font-weight:700;font-family:monospace;color:var(--red)">R$\${fmt(gneed(i)*i.cost)}</div>
+                <div style="font-size:.6rem;color:var(--muted)">\${fmt(gneed(i))} \${i.unit} faltando</div>
+              </div>
+            </div>
+          \`).join('') : '<div class="empty" style="padding:20px">Estoque OK!</div>'}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">\${lc('building-2',14,'var(--purple)')} Top Fornecedores por Volume</div></div>
+        <div class="card-body">
+          \${supVolume.length ? supVolume.map((x,idx)=>{
+            const pct = Math.round(x.vol/supVolMax*100);
+            return \`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+              <div style="width:20px;height:20px;border-radius:50%;background:\${idx===0?'#FEF3C7':'var(--surface2)'};
+                color:\${idx===0?'#D97706':'var(--muted)'};font-size:.62rem;font-weight:800;
+                display:flex;align-items:center;justify-content:center;flex-shrink:0">\${idx+1}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:.75rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">\${x.s.name}</div>
+                <div style="height:5px;background:var(--border);border-radius:3px;margin-top:3px;overflow:hidden">
+                  <div style="height:100%;width:\${pct}%;background:var(--purple);border-radius:3px"></div>
+                </div>
+              </div>
+              <div style="font-size:.7rem;font-family:monospace;font-weight:700;color:var(--purple);white-space:nowrap">R$\${fmt(x.vol)}</div>
+            </div>\`;
+          }).join('') : '<div class="empty" style="padding:20px">Sem histórico de compras.</div>'}
+        </div>
+      </div>
+    </div>
+
+    <!-- Estoque: distribuição por categoria -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><div class="card-title">\${lc('package',14,'var(--purple)')} Estoque — Distribuição por Categoria</div></div>
+      <div class="card-body">
+        \${(() => {
+          const cats = {};
+          insumos.forEach(i => {
+            if (!cats[i.cat]) cats[i.cat] = {ok:0,warn:0,crit:0,total:0};
+            cats[i.cat][gst(i)]++;
+            cats[i.cat].total++;
+          });
+          const catArr = Object.entries(cats).sort((a,b)=>b[1].crit-a[1].crit||b[1].warn-a[1].warn);
+          if (!catArr.length) return '<div class="empty" style="padding:20px">Sem insumos cadastrados.</div>';
+          return \`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+            \${catArr.map(([cat,c])=>\`
+              <div style="background:var(--surface2);border:1.5px solid \${c.crit>0?'var(--red)':c.warn>0?'var(--yellow)':'var(--border)'};border-radius:var(--r8);padding:10px 12px">
+                <div style="font-size:.74rem;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">\${cat}</div>
+                <div style="display:flex;gap:5px">
+                  \${c.crit>0?'<span class="badge b-red" style="font-size:.6rem">'+c.crit+' crit.</span>':''}
+                  \${c.warn>0?'<span class="badge b-yellow" style="font-size:.6rem">'+c.warn+' baixo</span>':''}
+                  \${c.ok>0?'<span class="badge b-green" style="font-size:.6rem">'+c.ok+' ok</span>':''}
+                </div>
+              </div>
+            \`).join('')}
+          </div>\`;
+        })()}
+      </div>
+    </div>
+  \`;
+}
+
+
+function renderUsuarios() {
+  // Usa a versão nas configurações (aba Usuários)
+  if (typeof setCfgTab === 'function') { setCfgTab('usuarios'); return; }
 }
 
 function openUserModal() {
@@ -753,7 +958,7 @@ function openEditUser(id) {
   const u = users.find(x => x.id === id);
   if (!u) return;
   editUserId = id;
-  document.getElementById('userModalTitle').textContent = `${lc("edit-2",13,"currentColor")}️ ${u.name}`;
+  document.getElementById('userModalTitle').textContent = `${lc("edit-2",13,"currentColor")} ${u.name}`;
   document.getElementById('fuName').value  = u.name;
   document.getElementById('fuEmail').value = u.email;
   document.getElementById('fuRole').value  = u.role;

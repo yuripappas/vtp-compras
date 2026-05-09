@@ -76,7 +76,7 @@ function goModule(mod) {
   else if (mod === 'previsao')      renderPrevisao();
   else if (mod === 'configuracoes') renderConfiguracoes();
   else if (mod === 'relatorios') renderRelatorios();
-  else if (mod === 'usuarios')   renderUsuarios();
+  else if (mod === 'usuarios')   { setCfgTab('usuarios'); }
 }
 
 function calcScore(price, delivery, payTerm, minP, maxP, minD, maxD) {

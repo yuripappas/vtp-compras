@@ -490,7 +490,7 @@ function _montaMsgCotacaoForn(sup, item) {
   const linhas = itensForn.map(i => `• ${i.nome}: ${fmt(i.qtdSelecionada)} ${i.unidade}`).join('\n');
   const prazo  = l.prazoCotacao ? `\nPrazo: ${fmtDT(l.prazoCotacao)}` : '';
   // Link de formulário de resposta (Google Forms ou página interna futura)
-  const formLink = `\n\n📋 *Preencha sua cotação aqui:*\nhttps://docs.google.com/forms/d/e/FORMULARIO_VTP/viewform?usp=pp_url&entry.codigo=${encodeURIComponent(l.codigo)}&entry.fornecedor=${encodeURIComponent(sup.name)}`;
+  const formLink = `\n\n[Form] *Preencha sua cotação aqui:*\nhttps://docs.google.com/forms/d/e/FORMULARIO_VTP/viewform?usp=pp_url&entry.codigo=${encodeURIComponent(l.codigo)}&entry.fornecedor=${encodeURIComponent(sup.name)}`;
   return `Olá ${sup.seller||sup.name}!\n\n*Vai Ter Pizza!* solicita cotação (${l.codigo}):\n\n${linhas}${prazo}\n\nPor favor informe:\n• Valor unitário de cada item\n• Prazo de entrega\n• Forma de pagamento\n• Prazo de pagamento${formLink}\n\nObrigado!`;
 }
 
@@ -510,7 +510,7 @@ function abrirAddFornecedor(itemId) {
       <div style="font-size:.74rem;color:var(--muted);margin-bottom:10px;font-weight:600">${i.nome}</div>
       <select id="selFornPop" class="inp" style="margin-bottom:16px">
         <option value="">Selecionar fornecedor...</option>
-        ${disponiveis.map(s=>`<option value="${s.id}">${s.name}${s.phone?'':' ⚠️ sem tel'}</option>`).join('')}
+        ${disponiveis.map(s=>`<option value="${s.id}">${s.name}${s.phone?'':' ! sem tel'}</option>`).join('')}
       </select>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-outline" onclick="document.getElementById('popupForn').remove()">Cancelar</button>
@@ -917,7 +917,7 @@ function _renderEtapa3() {
       return `<div class="card" style="margin-bottom:14px;overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--purple-xlight);border-bottom:1.5px solid var(--purple-light);flex-wrap:wrap;gap:8px">
           <div>
-            <div style="font-size:.88rem;font-weight:800;color:var(--purple)">${sup?.name||'⚠️ Fornecedor não definido'}</div>
+            <div style="font-size:.88rem;font-weight:800;color:var(--purple)">${sup?.name||'! Fornecedor não definido'}</div>
             ${sup?.seller?`<div style="font-size:.67rem;color:var(--muted);margin-top:1px">${lc('user',11,'var(--muted)')} ${sup.seller}</div>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
