@@ -55,7 +55,7 @@ function renderCadInsumos() {
 
   const el = document.getElementById('cadInsumosGrid');
   if (!filt.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📦</div><div style="font-weight:700;margin-bottom:4px">Nenhum insumo cadastrado</div><div>Clique em "${lc("plus",13,"#fff")} Novo Insumo" para começar</div></div>`;
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${lc("package",14,"currentColor")}</div><div style="font-weight:700;margin-bottom:4px">Nenhum insumo cadastrado</div><div>Clique em "${lc("plus",13,"#fff")} Novo Insumo" para começar</div></div>`;
     return;
   }
 
@@ -76,7 +76,7 @@ function renderCadInsumos() {
                 <div style="font-size:.84rem;font-weight:700">${item.name}</div>
                 <div style="font-size:.67rem;color:var(--muted);margin-top:2px">${item.unit}${item.code ? ' · #' + item.code : ''}</div>
               </div>
-              <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditItem(${item.id})">✏️</button>
+              <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditItem(${item.id})">${lc("edit-2",13,"currentColor")}️</button>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;font-size:.72rem;color:var(--text2)">
               <div style="display:flex;justify-content:space-between">
@@ -161,10 +161,10 @@ function saveItem() {
   if (editItemId) {
     const idx = items.findIndex(i => i.id === editItemId);
     if (idx >= 0) items[idx] = { ...items[idx], ...data };
-    toast(`✅ "${name}" atualizado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" atualizado!`);
   } else {
     items.push({ id: nextIid++, qty: 0, ...data });
-    toast(`✅ "${name}" adicionado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" adicionado!`);
   }
   saveI();
   closeModal('ovItem');
@@ -181,7 +181,7 @@ function deleteItem() {
   closeModal('ovItem');
   renderCadInsumos();
   renderDashboard();
-  toast(`🗑 "${item.name}" excluído.`);
+  toast(`${lc("trash-2",14,"currentColor")} "${item.name}" excluído.`);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -195,7 +195,7 @@ function renderPreparoGrid() {
   const el    = document.getElementById('preparoGrid');
 
   if (!prods.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🍳</div><div style="font-weight:700;margin-bottom:4px">Nenhum preparado cadastrado</div><div>Clique em "${lc("plus",13,"#fff")} Novo Preparado" para começar</div></div>`;
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${lc("chef-hat",14,"currentColor")}</div><div style="font-weight:700;margin-bottom:4px">Nenhum preparado cadastrado</div><div>Clique em "${lc("plus",13,"#fff")} Novo Preparado" para começar</div></div>`;
     return;
   }
 
@@ -206,7 +206,7 @@ function renderPreparoGrid() {
           <div style="font-size:.88rem;font-weight:700">${item.name}</div>
           <div style="font-size:.67rem;color:var(--muted);margin-top:2px">Produção Interna · ${item.unit}</div>
         </div>
-        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditPreparo(${item.id})">✏️</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditPreparo(${item.id})">${lc("edit-2",13,"currentColor")}️</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;font-size:.73rem">
         <div style="display:flex;justify-content:space-between">
@@ -278,10 +278,10 @@ function savePreparo() {
   if (editPreparoId) {
     const idx = items.findIndex(i => i.id === editPreparoId);
     if (idx >= 0) items[idx] = { ...items[idx], ...data };
-    toast(`✅ "${name}" atualizado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" atualizado!`);
   } else {
     items.push({ id: nextIid++, qty: 0, code: '', ...data });
-    toast(`✅ "${name}" adicionado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" adicionado!`);
   }
   saveI();
   closeModal('ovPreparo');
@@ -297,7 +297,7 @@ function deletePreparo() {
   closeModal('ovPreparo');
   renderPreparoGrid();
   renderDashboard();
-  toast(`🗑 "${item.name}" excluído.`);
+  toast(`${lc("trash-2",14,"currentColor")} "${item.name}" excluído.`);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -312,7 +312,7 @@ function renderFornecedores() {
   let filt = suppliers.filter(s => !q || s.name.toLowerCase().includes(q) || (s.seller || '').toLowerCase().includes(q));
 
   if (!filt.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🏢</div><div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Nenhum fornecedor</div><div>Cadastre seu primeiro fornecedor!</div></div>`;
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">${lc("building-2",13,"var(--muted)")}</div><div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Nenhum fornecedor</div><div>Cadastre seu primeiro fornecedor!</div></div>`;
     return;
   }
 
@@ -322,9 +322,9 @@ function renderFornecedores() {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div>
           <div style="font-size:.88rem;font-weight:700">${s.name}</div>
-          ${s.seller ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">👤 ${s.seller}</div>` : ''}
+          ${s.seller ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">${lc("user",14,"currentColor")} ${s.seller}</div>` : ''}
         </div>
-        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditSup(${s.id})">✏️</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditSup(${s.id})">${lc("edit-2",13,"currentColor")}️</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px">
         ${s.phone ? `<div style="font-size:.74rem;color:var(--text2)">${lc("phone",12,"var(--muted)")} ${s.phone}</div>` : ''}
@@ -415,12 +415,12 @@ function saveSup() {
     if (idx >= 0) suppliers[idx] = { ...suppliers[idx], ...data };
     items.forEach(i => { if (i.supId === editSupId) i.supId = null; });
     checked.forEach(iid => { const it = items.find(i => i.id === iid); if (it) it.supId = editSupId; });
-    toast(`✅ "${name}" atualizado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" atualizado!`);
   } else {
     const nid = nextSid++;
     suppliers.push({ id: nid, ...data });
     checked.forEach(iid => { const it = items.find(i => i.id === iid); if (it) it.supId = nid; });
-    toast(`✅ "${name}" cadastrado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" cadastrado!`);
   }
   saveS(); saveI();
   closeModal('ovSup');
@@ -437,7 +437,7 @@ function deleteSup() {
   closeModal('ovSup');
   renderFornecedores();
   renderDashboard();
-  toast(`🗑 "${s.name}" excluído.`);
+  toast(`${lc("trash-2",14,"currentColor")} "${s.name}" excluído.`);
 }
 
 
@@ -470,7 +470,7 @@ function renderCadProdutos() {
             <button class="btn btn-outline btn-sm" onclick="openProdModal(${p.id})">Editar</button>
           </div>`).join('')}
       </div>
-    </div>`).join('') || `<div class="empty"><div class="empty-icon">🍕</div>Nenhum produto cadastrado</div>`;
+    </div>`).join('') || `<div class="empty"><div class="empty-icon">${lc("tag",13,"currentColor")}</div>Nenhum produto cadastrado</div>`;
 }
 
 let _editProdId = null;
@@ -498,10 +498,10 @@ function saveProd() {
   if (_editProdId) {
     const idx = produtos.findIndex(p => p.id === _editProdId);
     if (idx >= 0) produtos[idx] = { ...produtos[idx], name, cat, price, active: document.getElementById('fprodActive').checked };
-    toast('✅ Produto atualizado!');
+    toast('${lc("check-circle",14,"var(--green)")} Produto atualizado!');
   } else {
     produtos.push({ id: nextPid++, name, cat, price, active: true });
-    toast('✅ Produto cadastrado!');
+    toast('${lc("check-circle",14,"var(--green)")} Produto cadastrado!');
   }
   saveP();
   closeModal('ovProd');
@@ -515,7 +515,7 @@ function deleteProd() {
   saveP();
   closeModal('ovProd');
   renderCadProdutos();
-  toast('🗑 Produto excluído.');
+  toast('${lc("trash-2",14,"currentColor")} Produto excluído.');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -565,7 +565,7 @@ function renderCadSabores() {
               <span style="font-size:.7rem;color:var(--muted);margin-left:8px">${s.acr > 0 ? '+R$ ' + fmt(s.acr) : 'Incluso'}</span>
               <span style="font-size:.7rem;color:var(--purple);font-weight:700;margin-left:8px">= R$ ${fmt(tipo.basePrice + s.acr)}</span>
             </div>
-            <button class="btn btn-outline btn-xs" onclick="openSaborModal('${tipo.id}', ${s.id})">✏️</button>
+            <button class="btn btn-outline btn-xs" onclick="openSaborModal('${tipo.id}', ${s.id})">${lc("edit-2",13,"currentColor")}️</button>
           </div>`).join('')}
         ${cat.items.length === 0 ? `<div style="font-size:.72rem;color:var(--muted);padding:8px">Nenhum sabor cadastrado</div>` : ''}
       </div>
@@ -602,10 +602,10 @@ function saveSabor() {
   if (_editSaborId) {
     const idx = sabores.findIndex(s => s.id === _editSaborId);
     if (idx >= 0) sabores[idx] = { ...sabores[idx], name, acr, active };
-    toast('✅ Sabor atualizado!');
+    toast('${lc("check-circle",14,"var(--green)")} Sabor atualizado!');
   } else {
     sabores.push({ id: nextSabId++, tipo: _editSaborTipo, name, acr, active });
-    toast('✅ Sabor adicionado!');
+    toast('${lc("check-circle",14,"var(--green)")} Sabor adicionado!');
   }
   saveSab();
   closeModal('ovSabor');
@@ -619,7 +619,7 @@ function deleteSabor() {
   saveSab();
   closeModal('ovSabor');
   renderCadSabores();
-  toast('🗑 Sabor excluído.');
+  toast('${lc("trash-2",14,"currentColor")} Sabor excluído.');
 }
 
 
@@ -638,7 +638,7 @@ function abrirImportCadInsumos() {
           <div style="font-size:.96rem;font-weight:800">Importar insumos do Cardápio Web</div>
           <div style="font-size:.72rem;color:var(--muted);margin-top:2px">Importa nome, categoria, código, unidade e custo do relatório de estoque</div>
         </div>
-        <button onclick="document.getElementById('popupImportCad').remove()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+        <button onclick="document.getElementById('popupImportCad').remove()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">${lc("x",13,"currentColor")}</button>
       </div>
 
       <!-- Drop zone -->
@@ -806,6 +806,6 @@ function confirmarImportCad() {
   saveI();
   document.getElementById('popupImportCad')?.remove();
   renderCadInsumos();
-  toast(`✅ ${data.novos.length} novos + ${data.atualizar.length} atualizados!`);
+  toast(`${lc("check-circle",14,"var(--green)")} ${data.novos.length} novos + ${data.atualizar.length} atualizados!`);
   window._cadImportData = null;
 }

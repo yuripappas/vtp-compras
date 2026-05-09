@@ -26,7 +26,7 @@ function saveConfiguracoes() {
     const el = document.getElementById('sbUserName');
     if (el) el.textContent = cfg.responsavel;
   }
-  toast('✅ Configurações salvas!');
+  toast('${lc("check-circle",14,"var(--green)")} Configurações salvas!');
 }
 
 function getConfig() {

@@ -11,12 +11,12 @@ let desperdicios = JSON.parse(localStorage.getItem('vtp_desperdicios') || '[]');
 const saveD = () => localStorage.setItem('vtp_desperdicios', JSON.stringify(desperdicios));
 
 const TIPOS_DESPERDICIO = [
-  { id: 'preproducao', label: 'Erro de pré-produção', icon: '🍳', color: 'var(--red)',         bg: 'var(--red-light)' },
-  { id: 'montagem',    label: 'Montagem incorreta',   icon: '🍕', color: 'var(--orange-dark)',  bg: 'var(--orange-light)' },
-  { id: 'entrega',     label: 'Erro de entrega',      icon: '🛵', color: 'var(--yellow)',        bg: 'var(--yellow-light)' },
-  { id: 'validade',    label: 'Vencimento/validade',  icon: '📅', color: '#7C3AED',             bg: '#EDE9FE' },
-  { id: 'acidente',    label: 'Acidente/queda',       icon: '⚠️', color: 'var(--muted)',         bg: 'var(--surface2)' },
-  { id: 'outro',       label: 'Outro',                icon: '📦', color: 'var(--text2)',         bg: 'var(--surface2)' },
+  { id: 'preproducao', label: 'Erro de pré-produção', icon: '${lc("chef-hat",14,"currentColor")}', color: 'var(--red)',         bg: 'var(--red-light)' },
+  { id: 'montagem',    label: 'Montagem incorreta',   icon: '${lc("tag",13,"currentColor")}', color: 'var(--orange-dark)',  bg: 'var(--orange-light)' },
+  { id: 'entrega',     label: 'Erro de entrega',      icon: '${lc("truck",14,"currentColor")}', color: 'var(--yellow)',        bg: 'var(--yellow-light)' },
+  { id: 'validade',    label: 'Vencimento/validade',  icon: '${lc("calendar",14,"currentColor")}', color: '#7C3AED',             bg: '#EDE9FE' },
+  { id: 'acidente',    label: 'Acidente/queda',       icon: '${lc("alert-triangle",14,"var(--yellow)")}️', color: 'var(--muted)',         bg: 'var(--surface2)' },
+  { id: 'outro',       label: 'Outro',                icon: '${lc("package",14,"currentColor")}', color: 'var(--text2)',         bg: 'var(--surface2)' },
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -82,7 +82,7 @@ function renderDesperdicio() {
           </div>
           <div style="font-size:.72rem;font-weight:700;width:70px;text-align:right;color:${t.color}">R$ ${fmt(porTipo[t.id].custo)}</div>
         </div>`).join('')}
-      ${Object.values(porTipo).every(v => v.custo === 0) ? '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">Nenhum desperdício no período 🎉</div>' : ''}
+      ${Object.values(porTipo).every(v => v.custo === 0) ? '<div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">Nenhum desperdício no período ${lc("star",14,"currentColor")}</div>' : ''}
     </div>`;
 
   // ── Top insumos mais desperdiçados ──
@@ -110,7 +110,7 @@ function renderDesperdicio() {
             <div style="font-family:monospace;font-weight:700;color:var(--red)">R$ ${fmt(v.custo)}</div>
           </div>`).join('')}
        </div>`
-    : `<div class="empty" style="padding:24px"><div class="empty-icon">✅</div>Nenhum desperdício registrado</div>`;
+    : `<div class="empty" style="padding:24px"><div class="empty-icon">${lc("check-circle",14,"var(--green)")}</div>Nenhum desperdício registrado</div>`;
 
   // ── Lista de registros ──
   document.getElementById('despLista').innerHTML = filt.length
@@ -125,7 +125,7 @@ function renderDesperdicio() {
           const tipo  = TIPOS_DESPERDICIO.find(t => t.id === d.tipo);
           const origemBadge = d.origem === 'produto' ? '${lc("tag",14)} Produto' : d.origem === 'preparado' ? '${lc("chef-hat",14)} Preparado' : '${lc("package",14)} Insumo';
           return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r10)">
-            <div style="width:36px;height:36px;border-radius:var(--r8);background:${tipo?.bg || 'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${tipo?.icon || '📦'}</div>
+            <div style="width:36px;height:36px;border-radius:var(--r8);background:${tipo?.bg || 'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${tipo?.icon || '${lc("package",14,"currentColor")}'}</div>
             <div style="flex:1">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">
                 <span style="font-size:.83rem;font-weight:700">${nome}</span>
@@ -136,11 +136,11 @@ function renderDesperdicio() {
               ${d.resp ? `<div style="font-size:.7rem;color:var(--muted)">Resp.: ${d.resp}</div>` : ''}
               ${d.obs ? `<div style="font-size:.72rem;color:var(--text2);margin-top:4px;font-style:italic">"${d.obs}"</div>` : ''}
             </div>
-            <button class="btn btn-red btn-xs" onclick="deleteDesperdicios(${d.id})" title="Excluir">🗑</button>
+            <button class="btn btn-red btn-xs" onclick="deleteDesperdicios(${d.id})" title="Excluir">${lc("trash-2",14,"currentColor")}</button>
           </div>`;
         }).join('')}
        </div>`
-    : `<div class="empty" style="padding:32px"><div class="empty-icon">✅</div>Nenhum desperdício registrado no período!</div>`;
+    : `<div class="empty" style="padding:32px"><div class="empty-icon">${lc("check-circle",14,"var(--green)")}</div>Nenhum desperdício registrado no período!</div>`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -377,7 +377,7 @@ function saveDesp() {
   if (_editDespId) {
     const idx = desperdicios.findIndex(x => x.id === _editDespId);
     if (idx >= 0) desperdicios[idx] = d;
-    toast('✅ Registro atualizado!');
+    toast('${lc("check-circle",14,"var(--green)")} Registro atualizado!');
   } else {
     // Debita do estoque apenas para insumos/preparados
     if (itemId) {
@@ -386,8 +386,8 @@ function saveDesp() {
     }
     desperdicios.push(d);
     const msg = itemId
-      ? `✅ Desperdício registrado! ${qty} ${unidade} debitado do estoque.`
-      : `✅ Desperdício de produto registrado! Custo: R$ ${fmt(custo)}`;
+      ? `${lc("check-circle",14,"var(--green)")} Desperdício registrado! ${qty} ${unidade} debitado do estoque.`
+      : `${lc("check-circle",14,"var(--green)")} Desperdício de produto registrado! Custo: R$ ${fmt(custo)}`;
     toast(msg);
   }
 
@@ -402,7 +402,7 @@ function deleteDesperdicios(id) {
   desperdicios = desperdicios.filter(d => d.id !== id);
   saveD();
   renderDesperdicio();
-  toast('🗑 Registro excluído.');
+  toast('${lc("trash-2",14,"currentColor")} Registro excluído.');
 }
 
 function clearDespFiltro() {

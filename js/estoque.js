@@ -131,7 +131,7 @@ function _renderEstoqueTabela(insumos) {
         <td class="c">
           <span style="padding:3px 8px;border-radius:10px;font-size:.65rem;font-weight:700;background:${stColors[st]}22;color:${stColors[st]}">${stLabels[st]}</span>
         </td>
-        <td class="c" style="min-width:160px">
+        <td class="r td-comprar">
           <div style="display:flex;align-items:center;gap:6px;justify-content:center">
             ${inCart ? `
               <div style="display:flex;align-items:center;gap:4px;background:var(--purple-xlight);border:1.5px solid var(--purple-light);border-radius:var(--r8);padding:4px 8px">
@@ -141,7 +141,7 @@ function _renderEstoqueTabela(insumos) {
                   onchange="setCarrinhoQty(${i.id}, this.value)">
                 <span style="font-size:.68rem;color:var(--purple);font-weight:600">${i.unit}</span>
                 <button onclick="ajustarCarrinho(${i.id}, 1)" style="width:22px;height:22px;border-radius:50%;border:none;background:var(--purple);color:#fff;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700">+</button>
-                <button onclick="removerCarrinho(${i.id})" style="width:22px;height:22px;border-radius:50%;border:none;background:var(--red-light);color:var(--red);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+                <button onclick="removerCarrinho(${i.id})" style="width:22px;height:22px;border-radius:50%;border:none;background:var(--red-light);color:var(--red);font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">${lc("x",13,"currentColor")}</button>
               </div>
             ` : `
               <div style="display:flex;align-items:center;gap:8px">
@@ -203,7 +203,7 @@ function saveStock() {
   saveI();
   changedIds.clear();
   document.getElementById('saveStockBtn')?.classList.remove('visible');
-  toast('✅ Estoque salvo!');
+  toast('${lc("check-circle",14,"var(--green)")} Estoque salvo!');
   renderDashboard();
 }
 
@@ -273,7 +273,7 @@ function _renderCarrinhoSumario() {
         return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r6)">
           <div style="flex:1;font-size:.76rem;font-weight:600">${item?.name || '?'}</div>
           <div style="font-size:.72rem;font-family:monospace;color:var(--purple)">${fmt(ci.qty)} ${item?.unit}</div>
-          <button onclick="removerCarrinho(${ci.itemId})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:2px 4px">✕</button>
+          <button onclick="removerCarrinho(${ci.itemId})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:2px 4px">${lc("x",13,"currentColor")}</button>
         </div>`;
       }).join('')}
     </div>
@@ -294,7 +294,7 @@ function gerarListaCompras() {
   const lista = novaLista(_carrinho);
   _carrinho   = [];
   saveCarrinho();
-  toast(`✅ Lista ${lista.codigo} criada!`);
+  toast(`${lc("check-circle",14,"var(--green)")} Lista ${lista.codigo} criada!`);
   renderEstoque();
   goModule('compras');
 }
@@ -433,7 +433,7 @@ function confirmImport() {
   });
   saveI();
   closeModal('ovImport');
-  toast(`✅ ${importData.length} itens atualizados!`);
+  toast(`${lc("check-circle",14,"var(--green)")} ${importData.length} itens atualizados!`);
   renderEstoque();
   renderDashboard();
   importData = [];

@@ -17,7 +17,7 @@ function renderComprasModule() {
 function _renderSemLista() {
   document.getElementById('comprasContent').innerHTML = `
     <div style="text-align:center;padding:60px 24px">
-      <div style="font-size:3rem;margin-bottom:16px">🛒</div>
+      <div style="font-size:3rem;margin-bottom:16px">${lc("shopping-cart",14,"currentColor")}</div>
       <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Nenhuma lista ativa</div>
       <div style="font-size:.82rem;color:var(--muted);margin-bottom:24px">Vá ao Estoque, adicione itens ao carrinho e clique em "Gerar Lista de Compras"</div>
       <button class="btn btn-primary" onclick="goModule('estoque')">${lc("package",16,"#fff")} Ir para o Estoque</button>
@@ -56,7 +56,7 @@ function _renderDashCompras() {
         <div style="display:flex;gap:6px">
           <button class="btn btn-red btn-xs" onclick="encerrarListaManual()">${lc("x",13)} Encerrar</button>
         </div>
-      ` : `<button class="btn btn-primary btn-sm" onclick="goModule('estoque')">🛒 Ir ao Estoque</button>`}
+      ` : `<button class="btn btn-primary btn-sm" onclick="goModule('estoque')">${lc("shopping-cart",14,"currentColor")} Ir ao Estoque</button>`}
     </div>
     ${la ? `
     <div style="margin-top:14px;display:flex;gap:4px">
@@ -97,7 +97,7 @@ function _renderEtapa1() {
   document.getElementById('comprasContent').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px">
       <div>
-        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">📋 Lista de Compras · ${l.codigo}</h3>
+        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">${lc("clipboard-list",14,"currentColor")} Lista de Compras · ${l.codigo}</h3>
         <div style="font-size:.72rem;color:var(--muted)">${l.itens.length} itens</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -169,7 +169,7 @@ function _rowsItem(i) {
   const mainRow = `<tr id="item1-${i.id}" style="background:var(--surface);border-bottom:${cotacoes.length?'none':'1px solid var(--border)'}">
     <td style="padding:10px 14px">
       <div style="font-size:.83rem;font-weight:700">${i.nome}</div>
-      <div style="font-size:.65rem;color:var(--muted)">${i.categoria} · ${i.origem==='manual'?'✏️ Manual':'📦 Estoque'}</div>
+      <div style="font-size:.65rem;color:var(--muted)">${i.categoria} · ${i.origem==='manual'?'${lc("edit-2",13,"currentColor")}️ Manual':'${lc("package",14,"currentColor")} Estoque'}</div>
     </td>
     <td class="c">
       <input type="number" value="${i.qtdSelecionada}" min="0.001" step="0.001"
@@ -190,12 +190,12 @@ function _rowsItem(i) {
         </button>
         ${cotacoes.length > 0 && i.fornecedorId ? `
           <button onclick="enviarCotacaoWAItem(${i.id})"
-            style="width:26px;height:26px;border-radius:50%;border:none;background:#25D366;color:#fff;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Enviar WA para todos os fornecedores deste item">💬</button>
+            style="width:26px;height:26px;border-radius:50%;border:none;background:#25D366;color:#fff;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Enviar WA para todos os fornecedores deste item">${lc("message-circle",14,"currentColor")}</button>
         ` : ''}
       </div>
     </td>
     <td class="c">
-      <button onclick="removerItem1(${i.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:4px" title="Remover">🗑</button>
+      <button onclick="removerItem1(${i.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:4px" title="Remover">${lc("trash-2",14,"currentColor")}</button>
     </td>
   </tr>`;
 
@@ -211,7 +211,7 @@ function _rowsItem(i) {
           <span style="font-size:.76rem;font-weight:600;color:${isBest&&cot.respondido?'var(--green)':'var(--text2)'}">${sup?.name||'—'}</span>
           ${isBest&&cot.respondido?'<span style="font-size:.6rem;font-weight:700;color:var(--green);background:var(--green-light);padding:1px 6px;border-radius:10px">Melhor</span>':''}
         </div>
-        ${sup?.phone?`<div style="font-size:.62rem;color:var(--muted);margin-top:1px;margin-left:11px">📞 ${sup.phone}</div>`:''}
+        ${sup?.phone?`<div style="font-size:.62rem;color:var(--muted);margin-top:1px;margin-left:11px">${lc("phone",13,"var(--muted)")} ${sup.phone}</div>`:''}
       </td>
       <td colspan="2" class="c">
         <label style="display:flex;align-items:center;gap:5px;justify-content:center;cursor:pointer;font-size:.7rem">
@@ -235,11 +235,11 @@ function _rowsItem(i) {
       <td style="padding:6px 12px">
         ${sup?.phone?`
           <a href="https://wa.me/55${(sup.phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(_montaMsgCotacaoForn(sup, i))}" target="_blank"
-            style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#25D366;color:#fff;text-decoration:none;font-size:.8rem" title="Enviar WA">💬</a>
+            style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#25D366;color:#fff;text-decoration:none;font-size:.8rem" title="Enviar WA">${lc("message-circle",14,"currentColor")}</a>
         `:''}
       </td>
       <td class="c">
-        <button onclick="removerCotacao(${i.id},${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;padding:4px" title="Remover fornecedor">✕</button>
+        <button onclick="removerCotacao(${i.id},${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.75rem;padding:4px" title="Remover fornecedor">${lc("x",13,"currentColor")}</button>
       </td>
     </tr>`;
   }).join('');
@@ -259,7 +259,7 @@ function _montaMsgCotacaoForn(sup, item) {
   const itensForn = l.itens.filter(i => (i.cotacoes||[]).some(c => c.supId === sup.id));
   const linhas = itensForn.map(i => `• ${i.nome}: ${fmt(i.qtdSelecionada)} ${i.unidade}`).join('\n');
   const prazo  = l.prazoCotacao ? `\n${lc("clock",14)} Prazo para cotação: ${fmtDT(l.prazoCotacao)}` : '';
-  return `Olá ${sup.seller||sup.name}! 👋\n\nA *Vai Ter Pizza!* solicita sua cotação (${l.codigo}):\n\n${linhas}${prazo}\n\nPor favor, responda com:\n✅ Preço unitário de cada item\n✅ Prazo de entrega\n✅ Condição de pagamento\n\nAguardamos seu retorno! 🍕`;
+  return `Olá ${sup.seller||sup.name}! ${lc("hand-metal",14,"currentColor")}\n\nA *Vai Ter Pizza!* solicita sua cotação (${l.codigo}):\n\n${linhas}${prazo}\n\nPor favor, responda com:\n${lc("check-circle",14,"var(--green)")} Preço unitário de cada item\n${lc("check-circle",14,"var(--green)")} Prazo de entrega\n${lc("check-circle",14,"var(--green)")} Condição de pagamento\n\nAguardamos seu retorno! ${lc("tag",13,"currentColor")}`;
 }
 
 // ── Ações da sublinha ──
@@ -276,7 +276,7 @@ function abrirAddFornecedor(itemId) {
 
   // Cria mini-modal inline
   const sel = disponiveis.map(s =>
-    `<option value="${s.id}">${s.name}${s.phone?' 📞':'⚠️ sem tel'}</option>`
+    `<option value="${s.id}">${s.name}${s.phone?' ${lc("phone",13,"var(--muted)")}':'${lc("alert-triangle",14,"var(--yellow)")}️ sem tel'}</option>`
   ).join('');
 
   const popup = document.createElement('div');
@@ -308,7 +308,7 @@ function confirmarAddFornecedor(itemId) {
   saveListas();
   document.getElementById('popupForn')?.remove();
   _renderEtapa1();
-  toast('✅ Fornecedor adicionado!');
+  toast('${lc("check-circle",14,"var(--green)")} Fornecedor adicionado!');
 }
 
 function removerCotacao(itemId, idx) {
@@ -357,7 +357,7 @@ function enviarTodasCotacoesWA() {
   saveListas();
   _renderDashCompras();
   _renderEtapa1();
-  toast(`💬 ${sups.length} mensagem(ns) enviada(s)!`);
+  toast(`${lc("message-circle",14,"currentColor")} ${sups.length} mensagem(ns) enviada(s)!`);
 }
 
 function enviarCotacaoWAItem(itemId) {
@@ -445,7 +445,7 @@ function saveItemManual() {
   saveListas();
   closeModal('ovAddItem');
   _renderEtapa1();
-  toast('✅ Item adicionado!');
+  toast('${lc("check-circle",14,"var(--green)")} Item adicionado!');
 }
 
 function abrirPrazoCotacao() {
@@ -497,7 +497,7 @@ function _renderEtapa2() {
   document.getElementById('comprasContent').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
-        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">✅ Aprovação · ${l.codigo}</h3>
+        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">${lc("check-circle",14,"var(--green)")} Aprovação · ${l.codigo}</h3>
         <div style="font-size:.72rem;color:var(--muted)">Revise e aprove os itens antes da compra</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -515,7 +515,7 @@ function _renderEtapa2() {
 
     <!-- Itens com fornecedor -->
     ${itensForn.length ? `
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px">🏢 Compras via Fornecedor</div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px">${lc("building-2",13,"var(--muted)")} Compras via Fornecedor</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
         ${itensForn.map(i => _cardAprovacaoItem(i, false)).join('')}
       </div>
@@ -523,9 +523,9 @@ function _renderEtapa2() {
 
     <!-- Itens presenciais -->
     ${itensPresencial.length ? `
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px">🛒 Compra Presencial (sem fornecedor)</div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px">${lc("shopping-cart",14,"currentColor")} Compra Presencial (sem fornecedor)</div>
       <div style="background:var(--orange-light);border:1.5px solid var(--border);border-radius:var(--r10);padding:12px 14px;margin-bottom:8px;font-size:.74rem;color:var(--orange-dark)">
-        ⚠️ Esses itens não têm fornecedor definido. A aprovação é por <strong>orçamento máximo</strong> — o comprador não pode gastar mais que o valor estimado.
+        ${lc("alert-triangle",14,"var(--yellow)")}️ Esses itens não têm fornecedor definido. A aprovação é por <strong>orçamento máximo</strong> — o comprador não pode gastar mais que o valor estimado.
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
         ${itensPresencial.map(i => _cardAprovacaoItem(i, true)).join('')}
@@ -545,7 +545,7 @@ function _cardAprovacaoItem(i, isPresencial) {
     <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap">
       <div style="flex:1;min-width:150px">
         <div style="font-size:.84rem;font-weight:700">${i.nome}</div>
-        <div style="font-size:.68rem;color:var(--muted)">${i.categoria} · ${isPresencial ? '🛒 Compra presencial' : '🏢 ' + (sup?.name||'Fornecedor')}</div>
+        <div style="font-size:.68rem;color:var(--muted)">${i.categoria} · ${isPresencial ? '${lc("shopping-cart",14,"currentColor")} Compra presencial' : '${lc("building-2",13,"var(--muted)")} ' + (sup?.name||'Fornecedor')}</div>
       </div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <div style="text-align:center">
@@ -609,7 +609,7 @@ function aprovarLista() {
   saveListas();
   _renderDashCompras();
   _renderEtapa3();
-  toast('✅ Lista aprovada!');
+  toast('${lc("check-circle",14,"var(--green)")} Lista aprovada!');
 }
 
 function reprovarLista() {
@@ -619,7 +619,7 @@ function reprovarLista() {
   saveListas();
   _renderDashCompras();
   _renderEtapa1();
-  toast('❌ Lista reprovada. Revise e reenvie.');
+  toast('${lc("x-circle",14,"var(--red)")} Lista reprovada. Revise e reenvie.');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -639,7 +639,7 @@ function _renderEtapa3() {
   document.getElementById('comprasContent').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
-        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">🛍️ Ordem de Compra · ${l.codigo}</h3>
+        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">${lc("shopping-bag",14,"currentColor")}️ Ordem de Compra · ${l.codigo}</h3>
         <div style="font-size:.72rem;color:var(--muted)">Total aprovado: <strong style="color:var(--purple)">R$ ${fmt(l.valorAprovado)}</strong></div>
       </div>
       <div style="display:flex;gap:8px">
@@ -655,8 +655,8 @@ function _renderEtapa3() {
       return `<div class="card" style="margin-bottom:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--purple-xlight);border-bottom:1.5px solid var(--purple-light);flex-wrap:wrap;gap:8px">
           <div>
-            <div style="font-size:.88rem;font-weight:800;color:var(--purple)">${sup?.name||'⚠️ Fornecedor não definido'}</div>
-            ${sup?.seller?`<div style="font-size:.68rem;color:var(--muted)">👤 ${sup.seller}</div>`:''}
+            <div style="font-size:.88rem;font-weight:800;color:var(--purple)">${sup?.name||'${lc("alert-triangle",14,"var(--yellow)")}️ Fornecedor não definido'}</div>
+            ${sup?.seller?`<div style="font-size:.68rem;color:var(--muted)">${lc("user",14,"currentColor")} ${sup.seller}</div>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:10px">
             <div style="font-size:1rem;font-weight:800;color:var(--purple)">R$ ${fmt(total)}</div>
@@ -676,7 +676,7 @@ function _renderEtapa3() {
     ${itensPresencial.length ? `
     <div class="card" style="margin-bottom:12px">
       <div style="padding:12px 14px;background:var(--orange-light);border-bottom:1.5px solid var(--border)">
-        <div style="font-size:.88rem;font-weight:800;color:var(--orange-dark)">🛒 Compra Presencial</div>
+        <div style="font-size:.88rem;font-weight:800;color:var(--orange-dark)">${lc("shopping-cart",14,"currentColor")} Compra Presencial</div>
         <div style="font-size:.7rem;color:var(--muted)">Defina local, data e responsável</div>
       </div>
       ${itensPresencial.map((i,idx) => `
@@ -710,14 +710,14 @@ function _renderEtapa3() {
 function _montaOCText(sup, itens, l) {
   const linhas = itens.map(i => '• ' + i.nome + ': ' + fmt(i.qtdAprovada??i.qtdSelecionada) + ' ' + i.unidade + ' × R$' + fmt(i.precoUnitFinal||i.precoUnitEstimado||0) + ' = R$' + fmt((i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitFinal||i.precoUnitEstimado||0))).join('\n');
   const total  = itens.reduce((s,i) => s+(i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitFinal||i.precoUnitEstimado||0), 0);
-  return 'Olá ' + (sup?.seller||sup?.name||'') + '! 👋\n\nSegue nossa Ordem de Compra ' + l.codigo + ':\n\n' + linhas + '\n\nTotal: R$' + fmt(total) + '\n\nObrigado! 🍕';
+  return 'Olá ' + (sup?.seller||sup?.name||'') + '! ${lc("hand-metal",14,"currentColor")}\n\nSegue nossa Ordem de Compra ' + l.codigo + ':\n\n' + linhas + '\n\nTotal: R$' + fmt(total) + '\n\nObrigado! ${lc("tag",13,"currentColor")}';
 }
 
 function copiarOC3(idx) {
   const entry = window._ocBySup?.[idx];
   if (!entry) return;
   const txt = _montaOCText(entry.sup, entry.itens, _listaAtual);
-  navigator.clipboard.writeText(txt).then(() => toast('📋 OC copiada!', 'info'));
+  navigator.clipboard.writeText(txt).then(() => toast('${lc("clipboard-list",14,"currentColor")} OC copiada!', 'info'));
 }
 
 function setSuperCampo(itemId, campo, val) {
@@ -731,7 +731,7 @@ function avancarParaRecebimento() {
   saveListas();
   _renderDashCompras();
   _renderEtapa4();
-  toast('📦 Avançado para recebimento!');
+  toast('${lc("package",14,"currentColor")} Avançado para recebimento!');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -746,7 +746,7 @@ function _renderEtapa4() {
   document.getElementById('comprasContent').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
-        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">📦 Recebimento · ${l.codigo}</h3>
+        <h3 style="font-size:1rem;font-weight:800;margin-bottom:4px">${lc("package",14,"currentColor")} Recebimento · ${l.codigo}</h3>
         <div style="font-size:.72rem;color:var(--muted)">${conferidos} de ${total} itens conferidos</div>
       </div>
       <div style="display:flex;gap:8px">
@@ -773,7 +773,7 @@ function _renderEtapa4() {
           <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;flex-wrap:wrap">
             <div style="flex:1;min-width:140px">
               <div style="font-size:.84rem;font-weight:700">${i.nome}</div>
-              <div style="font-size:.68rem;color:var(--muted)">${i.tipoCompra==='presencial'?'🛒 '+i.localCompra:'🏢 '+(sup?.name||'Fornecedor')}</div>
+              <div style="font-size:.68rem;color:var(--muted)">${i.tipoCompra==='presencial'?'${lc("shopping-cart",14,"currentColor")} '+i.localCompra:'${lc("building-2",13,"var(--muted)")} '+(sup?.name||'Fornecedor')}</div>
             </div>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
               <div style="text-align:center">

@@ -63,7 +63,7 @@ function renderPreproducao() {
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
           <span class="badge ${s === 'crit' ? 'b-red' : s === 'warn' ? 'b-yellow' : 'b-green'}">${s === 'crit' ? 'CRÍTICO' : s === 'warn' ? 'BAIXO' : 'OK'}</span>
-          ${rendItem !== null ? `<span class="badge ${rendItem >= 95 ? 'b-green' : rendItem >= 80 ? 'b-yellow' : 'b-red'}" style="font-size:.58rem">⚙️ ${rendItem}% rendimento</span>` : ''}
+          ${rendItem !== null ? `<span class="badge ${rendItem >= 95 ? 'b-green' : rendItem >= 80 ? 'b-yellow' : 'b-red'}" style="font-size:.58rem">${lc("settings",14,"currentColor")}️ ${rendItem}% rendimento</span>` : ''}
         </div>
       </div>
       <div class="card-body">
@@ -85,8 +85,8 @@ function renderPreproducao() {
                   <span style="color:var(--muted);margin-left:6px">${fmtD(o.date)} · ${o.turno || '—'}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:5px">
-                  <span class="badge ${o.status === 'produzido' ? 'b-green' : 'b-orange'}" style="font-size:.58rem">${o.status === 'produzido' ? '✓ Prod.' : 'Pend.'}</span>
-                  ${o.status === 'pendente' ? `<button class="btn btn-green btn-xs" onclick="openFinishOrdem(${o.id})">✓ Finalizar</button>` : ''}
+                  <span class="badge ${o.status === 'produzido' ? 'b-green' : 'b-orange'}" style="font-size:.58rem">${o.status === 'produzido' ? '${lc("check",13,"currentColor")} Prod.' : 'Pend.'}</span>
+                  ${o.status === 'pendente' ? `<button class="btn btn-green btn-xs" onclick="openFinishOrdem(${o.id})">${lc("check",13,"currentColor")} Finalizar</button>` : ''}
                 </div>
               </div>
               ${o.status === 'produzido' ? `<div style="display:flex;gap:10px;font-size:.68rem;color:var(--muted)">
@@ -111,7 +111,7 @@ function clearPrepFiltro() {
 }
 
 function zerarCicloPrepara() {
-  if (!confirm(`⚠️ Zerar ciclo de pré-produção?
+  if (!confirm(`${lc("alert-triangle",14,"var(--yellow)")}️ Zerar ciclo de pré-produção?
 
 Esta ação vai:
 • Zerar a quantidade atual de TODOS os preparados (produção interna)
@@ -132,7 +132,7 @@ Deseja continuar?`)) return;
 
   renderPreproducao();
   renderDashboard();
-  toast(`✅ Ciclo zerado! ${count} ordem(ns) arquivadas. Importe o CSV para atualizar.`);
+  toast(`${lc("check-circle",14,"var(--green)")} Ciclo zerado! ${count} ordem(ns) arquivadas. Importe o CSV para atualizar.`);
 }
 
 function openOrdemModal(preItemId) {
@@ -169,7 +169,7 @@ function saveOrdem() {
   closeModal('ovOrdem');
   renderPreproducao();
   renderDashboard();
-  toast('✅ Ordem criada!');
+  toast('${lc("check-circle",14,"var(--green)")} Ordem criada!');
 }
 
 function openFinishOrdem(id) {
@@ -177,7 +177,7 @@ function openFinishOrdem(id) {
   const item = items.find(i => i.id === o?.itemId);
   if (!o || !item) return;
 
-  document.getElementById('respTitle').textContent = `✅ Finalizar: ${item.name}`;
+  document.getElementById('respTitle').textContent = `${lc("check-circle",14,"var(--green)")} Finalizar: ${item.name}`;
   document.getElementById('respBody').innerHTML = `
     <div style="background:var(--purple-xlight);border:1.5px solid var(--purple-light);border-radius:var(--r8);padding:10px 14px;font-size:.77rem;margin-bottom:14px">
       <strong>Quantidade planejada:</strong> ${o.qty} ${item.unit}<br>
@@ -197,7 +197,7 @@ function openFinishOrdem(id) {
     </div>`;
   document.getElementById('respFoot').innerHTML = `
     <button class="btn btn-outline" onclick="closeModal('ovResponse')">Cancelar</button>
-    <button class="btn btn-primary" onclick="finishOrdem(${id})">✅ Confirmar produção</button>`;
+    <button class="btn btn-primary" onclick="finishOrdem(${id})">${lc("check-circle",14,"var(--green)")} Confirmar produção</button>`;
   document.getElementById('ovResponse').classList.add('open');
 }
 
@@ -221,7 +221,7 @@ function finishOrdem(id) {
   closeModal('ovResponse');
   renderPreproducao();
   renderDashboard();
-  toast(`✅ Produção registrada! ${o.qtyReal} ${item.unit} adicionados ao estoque.`);
+  toast(`${lc("check-circle",14,"var(--green)")} Produção registrada! ${o.qtyReal} ${item.unit} adicionados ao estoque.`);
 }
 
 // ── PDF de ordens ──
@@ -353,7 +353,7 @@ function generatePDF() {
   win.document.write(html);
   win.document.close();
   closeModal('ovPDF');
-  toast('📄 PDF gerado!', 'ok');
+  toast('${lc("file-text",14,"currentColor")} PDF gerado!', 'ok');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -363,7 +363,7 @@ function generatePDF() {
 function renderFornecedores() {
   const el = document.getElementById('supGrid');
   if (!suppliers.length) {
-    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🏢</div><div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Nenhum fornecedor</div><div>Cadastre seu primeiro fornecedor!</div></div>`;
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon" style="font-size:0">${lc("building-2",13,"var(--muted)")}</div><div style="font-size:.9rem;font-weight:700;margin-bottom:4px">Nenhum fornecedor</div><div>Cadastre seu primeiro fornecedor!</div></div>`;
     return;
   }
   el.innerHTML = suppliers.map(s => {
@@ -372,13 +372,13 @@ function renderFornecedores() {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div>
           <div style="font-size:.88rem;font-weight:700">${s.name}</div>
-          ${s.seller ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">👤 ${s.seller}</div>` : ''}
+          ${s.seller ? `<div style="font-size:.72rem;color:var(--muted);margin-top:2px">${lc("user",14,"currentColor")} ${s.seller}</div>` : ''}
         </div>
-        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditSup(${s.id})">✏️</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openEditSup(${s.id})">${lc("edit-2",13,"currentColor")}️</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:10px">
-        ${s.phone ? `<div style="font-size:.74rem;color:var(--text2)">📞 ${s.phone}</div>` : ''}
-        ${s.email ? `<div style="font-size:.74rem;color:var(--text2)">✉️ ${s.email}</div>` : ''}
+        ${s.phone ? `<div style="font-size:.74rem;color:var(--text2)">${lc("phone",13,"var(--muted)")} ${s.phone}</div>` : ''}
+        ${s.email ? `<div style="font-size:.74rem;color:var(--text2)">${lc("mail",14,"currentColor")}️ ${s.email}</div>` : ''}
         ${s.cats  ? `<div style="font-size:.72rem;color:var(--muted)">${s.cats}</div>` : ''}
       </div>
       ${si.length
@@ -405,7 +405,7 @@ function openEditSup(id) {
   const s = suppliers.find(x => x.id === id);
   if (!s) return;
   editSupId = id;
-  document.getElementById('supModalTitle').textContent = `✏️ ${s.name}`;
+  document.getElementById('supModalTitle').textContent = `${lc("edit-2",13,"currentColor")}️ ${s.name}`;
   document.getElementById('sfName').value   = s.name   || '';
   document.getElementById('sfSeller').value = s.seller || '';
   document.getElementById('sfPhone').value  = s.phone  || '';
@@ -514,12 +514,12 @@ function saveSup() {
     if (idx >= 0) suppliers[idx] = { ...suppliers[idx], ...data };
     items.forEach(i => { if (i.supId === editSupId) i.supId = null; });
     checked.forEach(iid => { const it = items.find(i => i.id === iid); if (it) it.supId = editSupId; });
-    toast(`✅ "${name}" atualizado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" atualizado!`);
   } else {
     const nid = nextSid++;
     suppliers.push({ id: nid, ...data });
     checked.forEach(iid => { const it = items.find(i => i.id === iid); if (it) it.supId = nid; });
-    toast(`✅ "${name}" cadastrado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" cadastrado!`);
   }
   saveS(); saveI();
   closeModal('ovSup');
@@ -536,7 +536,7 @@ function deleteSup() {
   closeModal('ovSup');
   renderFornecedores();
   renderDashboard();
-  toast(`🗑 "${s.name}" excluído.`);
+  toast(`${lc("trash-2",14,"currentColor")} "${s.name}" excluído.`);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -577,7 +577,7 @@ function renderRelatorios() {
             <div style="font-size:.65rem;color:var(--green)">↓ R$${fmt(c.economia)}</div>
           </div>
         </div>`).join('')
-    : `<div class="empty" style="padding:24px"><div class="empty-icon">📋</div>${de || ate ? 'Nenhum ciclo encontrado para este período.' : 'Nenhum ciclo finalizado ainda.'}</div>`;
+    : `<div class="empty" style="padding:24px"><div class="empty-icon" style="font-size:0">${lc("clipboard-list",14,"currentColor")}</div>${de || ate ? 'Nenhum ciclo encontrado para este período.' : 'Nenhum ciclo finalizado ainda.'}</div>`;
 
   // Evolução de preços (top 5 insumos por custo)
   const top5 = [...items].filter(i => !i.isProd).sort((a, b) => b.cost - a.cost).slice(0, 5);
@@ -601,7 +601,7 @@ function renderRelatorios() {
           const si = items.filter(i => i.supId === s.id);
           return `<div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r10);padding:12px">
             <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">${s.name}</div>
-            ${s.seller ? `<div style="font-size:.7rem;color:var(--muted)">👤 ${s.seller}</div>` : ''}
+            ${s.seller ? `<div style="font-size:.7rem;color:var(--muted)">${lc("user",14,"currentColor")} ${s.seller}</div>` : ''}
             <div style="font-size:.7rem;color:var(--muted);margin-top:4px">${si.length} insumo(s) vinculado(s)</div>
             ${si.length ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:6px">${si.slice(0, 3).map(i => `<span class="badge b-purple" style="font-size:.58rem">${i.name}</span>`).join('')}${si.length > 3 ? `<span class="badge b-gray" style="font-size:.58rem">+${si.length - 3}</span>` : ''}</div>` : ''}
           </div>`;
@@ -626,10 +626,10 @@ function renderUsuarios() {
         </div>
         <div style="font-size:.72rem;color:var(--muted)">${u.email}</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px">
-          ${p.perms.map(perm => `<span class="badge b-gray" style="font-size:.6rem">✓ ${perm}</span>`).join('')}
+          ${p.perms.map(perm => `<span class="badge b-gray" style="font-size:.6rem">${lc("check",13,"currentColor")} ${perm}</span>`).join('')}
         </div>
       </div>
-      <button class="btn btn-outline btn-xs" onclick="openEditUser(${u.id})">✏️</button>
+      <button class="btn btn-outline btn-xs" onclick="openEditUser(${u.id})">${lc("edit-2",13,"currentColor")}️</button>
     </div>`;
   }).join('');
 }
@@ -649,7 +649,7 @@ function openEditUser(id) {
   const u = users.find(x => x.id === id);
   if (!u) return;
   editUserId = id;
-  document.getElementById('userModalTitle').textContent = `✏️ ${u.name}`;
+  document.getElementById('userModalTitle').textContent = `${lc("edit-2",13,"currentColor")}️ ${u.name}`;
   document.getElementById('fuName').value  = u.name;
   document.getElementById('fuEmail').value = u.email;
   document.getElementById('fuRole').value  = u.role;
@@ -667,7 +667,7 @@ function renderPermPreview() {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.79rem">
       <span>${perm}</span>
       <span style="font-size:.72rem;font-weight:700;color:${p.perms.includes(perm) ? 'var(--green)' : 'var(--red)'}">
-        ${p.perms.includes(perm) ? '✅ Permitido' : '❌ Bloqueado'}
+        ${p.perms.includes(perm) ? '${lc("check-circle",14,"var(--green)")} Permitido' : '${lc("x-circle",14,"var(--red)")} Bloqueado'}
       </span>
     </div>`).join('');
 }
@@ -686,14 +686,14 @@ function saveUser() {
       if (pass.length < 6) { toast('Senha deve ter pelo menos 6 caracteres', 'err'); return; }
       localStorage.setItem(`vtp_pass_${editUserId}`, pass);
     }
-    toast(`✅ "${name}" atualizado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" atualizado!`);
   } else {
     if (users.find(u => u.email === email)) { toast('E-mail já cadastrado', 'err'); return; }
     if (!pass || pass.length < 6) { toast('Defina uma senha de pelo menos 6 caracteres', 'err'); return; }
     const newId = nextUid++;
     users.push({ id: newId, name, email, role, active: true });
     localStorage.setItem(`vtp_pass_${newId}`, pass);
-    toast(`✅ "${name}" criado!`);
+    toast(`${lc("check-circle",14,"var(--green)")} "${name}" criado!`);
   }
   saveU();
   closeModal('ovUser');
@@ -707,5 +707,5 @@ function deleteUser() {
   saveU();
   closeModal('ovUser');
   renderUsuarios();
-  toast(`🗑 "${u.name}" excluído.`);
+  toast(`${lc("trash-2",14,"currentColor")} "${u.name}" excluído.`);
 }

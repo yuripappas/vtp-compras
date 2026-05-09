@@ -643,7 +643,7 @@ function confirmarPlanejamento() {
   savePlanej();
 
   _mostrarPlanejSalvo(reg);
-  toast('✅ Planejamento confirmado e salvo!');
+  toast('${lc("check-circle",14,"var(--green)")} Planejamento confirmado e salvo!');
 }
 
 function _mostrarPlanejSalvo(reg) {
@@ -654,7 +654,7 @@ function _mostrarPlanejSalvo(reg) {
   box.innerHTML = `
     <div class="mh">
       <div class="mt">${lc('check-circle',16,'var(--green)')} Planejamento de ${new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'})}</div>
-      <button class="mc" onclick="closeModal('ovPlanejSalvo')">✕</button>
+      <button class="mc" onclick="closeModal('ovPlanejSalvo')">${lc("x",13,"currentColor")}</button>
     </div>
     <div class="mb" style="display:flex;flex-direction:column;gap:14px">
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
@@ -707,27 +707,27 @@ function _montaMsgWA(r) {
     `  Batida ${b.num} — ${b.horario}: ${b.grBol} grandes + ${b.pqBol} pequenas | ${b.kgFar}kg farinha | ${b.fermG}g fermento`
   ).join('\n');
 
-  return `🍕 PLANEJAMENTO DO DIA — ${data.toUpperCase()}
+  return `${lc("tag",13,"currentColor")} PLANEJAMENTO DO DIA — ${data.toUpperCase()}
 
-📊 Previsão de pedidos: ${r.previsaoPedidos}
+${lc("bar-chart-2",14,"currentColor")} Previsão de pedidos: ${r.previsaoPedidos}
 
-🍕 Produção recomendada:
+${lc("tag",13,"currentColor")} Produção recomendada:
   Massas grandes: ${r.massas.grandesFinal}
   Massas pequenas: ${r.massas.pequenasFinal}
   Total: ${r.massas.grandesFinal + r.massas.pequenasFinal} massas
 
-🍞 Batidas de massa:
+${lc("layers",14,"currentColor")} Batidas de massa:
   Total de batidas: ${r.batidas.length}
 ${batidasLinha}
 
-🛵 Motoboys:
+${lc("truck",14,"currentColor")} Motoboys:
   Fixos: ${r.motoboys.fixos}
   Diaristas: ${r.motoboys.diaristas}
   Total escalado: ${r.motoboys.total}
 
-⚡ Fatores considerados:
+${lc("zap",13,"currentColor")} Fatores considerados:
 ${fatoresLinha}
-${r.fatores.obs ? `\n📝 Obs: ${r.fatores.obs}` : ''}
+${r.fatores.obs ? `\n${lc("edit-2",14,"currentColor")} Obs: ${r.fatores.obs}` : ''}
 
 _Gerado pelo VTP Compras_`;
 }
@@ -748,7 +748,7 @@ function enviarWATime() {
   if (cfgPrev.waGrupo) {
     window.open('https://wa.me/' + cfgPrev.waGrupo.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
   } else {
-    navigator.clipboard.writeText(msg).then(() => toast('📋 Mensagem copiada! Configure o WA do grupo nos parâmetros.', 'info'));
+    navigator.clipboard.writeText(msg).then(() => toast('${lc("clipboard-list",14,"currentColor")} Mensagem copiada! Configure o WA do grupo nos parâmetros.', 'info'));
   }
 }
 
@@ -790,7 +790,7 @@ function _salvarRegistroPedidos() {
   historicoAPI.push({ data, pedidos, obs });
   saveHistorico();
   document.getElementById('popupImport')?.remove();
-  toast('✅ Registro salvo!');
+  toast('${lc("check-circle",14,"var(--green)")} Registro salvo!');
   renderPrevisao();
 }
 
@@ -804,7 +804,7 @@ function abrirModalHistorico() {
   box.innerHTML = `
     <div class="mh">
       <div class="mt">${lc('activity',15,'var(--purple)')} Histórico de ${DIAS[diaSem]}s</div>
-      <button class="mc" onclick="closeModal('ovHistorico')">✕</button>
+      <button class="mc" onclick="closeModal('ovHistorico')">${lc("x",13,"currentColor")}</button>
     </div>
     <div class="mb">
       <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
@@ -851,10 +851,10 @@ function _renderModalCfg() {
   const c = cfgPrev;
   return `
     <div class="mbox" style="max-width:580px;max-height:90vh;overflow-y:auto">
-      <div class="mh"><div class="mt">${lc('settings',15,'var(--purple)')} Parâmetros de previsão</div><button class="mc" onclick="closeModal('ovCfgPrev2')">✕</button></div>
+      <div class="mh"><div class="mt">${lc('settings',15,'var(--purple)')} Parâmetros de previsão</div><button class="mc" onclick="closeModal('ovCfgPrev2')">${lc("x",13,"currentColor")}</button></div>
       <div class="mb" style="display:flex;flex-direction:column;gap:0">
 
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:4px 0 10px">🍕 Distribuição de pizzas por pedido</div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:4px 0 10px">${lc("tag",13,"currentColor")} Distribuição de pizzas por pedido</div>
         <div class="f2">
           <div class="field"><label>Grandes salgadas/pedido</label><input class="inp" type="number" id="cDistGrSal" value="${c.distGrSalgada}" step="0.01" min="0"><span style="font-size:.65rem;color:var(--muted)">padrão: 1.04</span></div>
           <div class="field"><label>Pequenas salgadas/pedido</label><input class="inp" type="number" id="cDistPqSal" value="${c.distPqSalgada}" step="0.01" min="0"><span style="font-size:.65rem;color:var(--muted)">padrão: 0.06</span></div>
@@ -864,7 +864,7 @@ function _renderModalCfg() {
           <div class="field"><label>Pequenas doces/pedido</label><input class="inp" type="number" id="cDistPqDoc" value="${c.distPqDoce}" step="0.01" min="0"><span style="font-size:.65rem;color:var(--muted)">padrão: 0.34</span></div>
         </div>
 
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">🍞 Massas e batidas</div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">${lc("layers",14,"currentColor")} Massas e batidas</div>
         <div class="f2">
           <div class="field"><label>Margem de segurança (%)</label><input class="inp" type="number" id="cMargem" value="${c.margemSeguranca}" min="0" max="50"></div>
           <div class="field"><label>Capacidade grandes/batida</label><input class="inp" type="number" id="cCapGr" value="${c.capGrandesBatida}" min="1"></div>
@@ -878,13 +878,13 @@ function _renderModalCfg() {
           <div class="field"><label>Tempo mínimo antes de usar (min)</label><input class="inp" type="number" id="cTempoMin" value="${c.tempoMinAntes}" min="0"></div>
         </div>
 
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">🧪 Fermento</div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">${lc("beaker",14,"currentColor")} Fermento</div>
         <div class="f2">
           <div class="field"><label>Fermento base (g/kg de farinha)</label><input class="inp" type="number" id="cFermBase" value="${c.fermentoBasePorKg}" step="0.5" min="1"><span style="font-size:.65rem;color:var(--muted)">na temp. de referência</span></div>
           <div class="field"><label>Temperatura de referência (°C)</label><input class="inp" type="number" id="cTempRef" value="${c.tempReferencia}" min="10" max="40"></div>
         </div>
 
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">🛵 Motoboys</div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">${lc("truck",14,"currentColor")} Motoboys</div>
         <div class="f2">
           <div class="field"><label>% pedidos delivery</label><input class="inp" type="number" id="cPctDel" value="${c.pctDelivery}" min="0" max="100"></div>
           <div class="field"><label>Entregas/motoboy/hora</label><input class="inp" type="number" id="cEntHora" value="${c.entregasPorHora}" min="1"></div>
@@ -898,14 +898,14 @@ function _renderModalCfg() {
           <input class="inp" type="number" id="cMargemMoto" value="${c.margemMoto}" min="0" max="50">
         </div>
 
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">💬 WhatsApp do time</div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">${lc("message-circle",14,"currentColor")} WhatsApp do time</div>
         <div class="field">
           <label>Número do grupo WA (com DDI)</label>
           <input class="inp" id="cWaGrupo" value="${c.waGrupo||''}" placeholder="5511999887766">
           <span style="font-size:.65rem;color:var(--muted)">ex: 5582999887766 · sem espaços</span>
         </div>
 
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">🔢 Histórico</div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);padding:14px 0 10px">${lc("hash",14,"currentColor")} Histórico</div>
         <div class="field">
           <label>Dias de histórico a considerar</label>
           <input class="inp" type="number" id="cDiasHist" value="${c.diasHistorico}" min="7" max="365">
@@ -946,7 +946,7 @@ function _salvarCfgPrev() {
   };
   saveCfgPrev();
   closeModal('ovCfgPrev2');
-  toast('✅ Configurações salvas!');
+  toast('${lc("check-circle",14,"var(--green)")} Configurações salvas!');
   recalcularPrevisao();
 }
 

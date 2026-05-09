@@ -10,7 +10,7 @@ function renderDashboard() {
   const cfg  = JSON.parse(localStorage.getItem('vtp_config') || '{}');
   const nome = cfg.responsavel || 'Yuri';
   document.getElementById('dashGreeting').textContent =
-    `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, ${nome}! 👋`;
+    `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, ${nome}! ${lc("hand-metal",14,"currentColor")}`;
   document.getElementById('dashDate').textContent =
     now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -23,22 +23,22 @@ function renderDashboard() {
   // KPI cards
   document.getElementById('kpiGrid').innerHTML = `
     <div class="kpi-card" onclick="goModule('estoque')">
-      <div class="kpi-icon" style="background:var(--red-light)">🚨</div>
+      <div class="kpi-icon" style="background:var(--red-light)">${lc("alert-circle",14,"var(--red)")}</div>
       <div class="kpi-val" style="color:var(--red)">${crit}</div>
       <div class="kpi-label">Insumos críticos</div>
     </div>
     <div class="kpi-card" onclick="goModule('preproducao')">
-      <div class="kpi-icon" style="background:var(--red-light)">🍳</div>
+      <div class="kpi-icon" style="background:var(--red-light)">${lc("chef-hat",14,"currentColor")}</div>
       <div class="kpi-val" style="color:var(--red)">${items.filter(i => i.isProd && gst(i) === 'crit').length}</div>
       <div class="kpi-label">Prep. críticos</div>
     </div>
     <div class="kpi-card" onclick="goModule('compras')">
-      <div class="kpi-icon" style="background:var(--orange-light)">💰</div>
+      <div class="kpi-icon" style="background:var(--orange-light)">${lc("dollar-sign",14,"var(--green)")}</div>
       <div class="kpi-val" style="color:var(--orange-dark);font-size:1.1rem">R$${fmt(totalNeed)}</div>
       <div class="kpi-label">Estimativa compras</div>
     </div>
     <div class="kpi-card" onclick="goModule('compras')">
-      <div class="kpi-icon" style="background:var(--purple-light)">📋</div>
+      <div class="kpi-icon" style="background:var(--purple-light)">${lc("clipboard-list",14,"currentColor")}</div>
       <div class="kpi-val">${respCount}/${totalDisp}</div>
       <div class="kpi-label">Cotações respondidas</div>
     </div>`;
@@ -58,7 +58,7 @@ function renderDashboard() {
           </div>
           <span class="badge ${gst(i) === 'crit' ? 'b-red' : 'b-yellow'}">${gst(i) === 'crit' ? 'CRÍTICO' : 'BAIXO'}</span>
         </div>`).join('')
-    : `<div class="empty" style="padding:20px"><div class="empty-icon">✅</div>Estoque em dia!</div>`;
+    : `<div class="empty" style="padding:20px"><div class="empty-icon">${lc("check-circle",14,"var(--green)")}</div>Estoque em dia!</div>`;
 
   // Histórico recente
   document.getElementById('dashHistorico').innerHTML = cycleHistory.length
@@ -73,7 +73,7 @@ function renderDashboard() {
             <div style="font-size:.65rem;color:var(--green)">-R$${fmt(c.economia)}</div>
           </div>
         </div>`).join('')
-    : `<div class="empty" style="padding:20px"><div class="empty-icon">📋</div>Nenhum ciclo finalizado ainda.</div>`;
+    : `<div class="empty" style="padding:20px"><div class="empty-icon">${lc("clipboard-list",14,"currentColor")}</div>Nenhum ciclo finalizado ainda.</div>`;
 
   // Ranking de fornecedores
   const mockRanking = suppliers.length

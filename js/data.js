@@ -153,15 +153,15 @@ const saveSab = () => localStorage.setItem('vtp_sabores',  JSON.stringify(sabore
 // ══════════════════════════════════════════════════════════════
 const PERMS = {
   gerente: {
-    label: '👑 Gerente', color: '#6B21D4', bg: '#EDE9FE',
+    label: '${lc("crown",14,"var(--yellow)")} Gerente', color: '#6B21D4', bg: '#EDE9FE',
     perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios','Gerenciar usuários','Configurações']
   },
   supervisor: {
-    label: '🔑 Supervisor', color: '#D97706', bg: '#FEF3C7',
+    label: '${lc("key",14,"currentColor")} Supervisor', color: '#D97706', bg: '#FEF3C7',
     perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios']
   },
   comprador: {
-    label: '🛒 Comprador', color: '#16A34A', bg: '#DCFCE7',
+    label: '${lc("shopping-cart",14,"currentColor")} Comprador', color: '#16A34A', bg: '#DCFCE7',
     perms: ['Ver Dashboard','Estoque','Pré-produção','Compras','Fornecedores']
   },
 };
