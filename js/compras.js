@@ -250,36 +250,54 @@ function _rowsItem(i) {
       </div>
     </td>
     <td class="c">
-      <button onclick="removerItem1(${i.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px">
-        ${lc('trash-2',13,'currentColor')}
-      </button>
+      <div style="display:flex;gap:2px;align-items:center;justify-content:center">
+        ${i.origem==='manual'?`
+          <button onclick="abrirEditarItemManual(${i.id})" style="background:none;border:none;color:var(--purple);cursor:pointer;padding:4px" title="Editar item">
+            ${lc('edit-2',12,'currentColor')}
+          </button>
+        `:''}
+        <button onclick="removerItem1(${i.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px" title="Remover">
+          ${lc('trash-2',13,'currentColor')}
+        </button>
+      </div>
     </td>
   </tr>`;
 
   const subRows = cotacoes.map((cot, idx) => {
     const sup    = suppliers.find(s => s.id === cot.supId);
-    const isBest = melhor?.supId === cot.supId;
+    const isBest = melhor?.supId === cot.supId && !cot.emFalta;
     const total  = cot.precoUnit ? i.qtdSelecionada * cot.precoUnit : null;
-    return `<tr style="background:${isBest&&cot.respondido?'var(--green-light)':'var(--surface2)'};border-bottom:1px solid var(--border)">
+    const bgRow  = cot.emFalta ? '#FFF1F1' : isBest&&cot.respondido ? 'var(--green-light)' : 'var(--surface2)';
+    return `<tr style="background:${bgRow};border-bottom:1px solid var(--border)">
       <td style="padding:6px 14px 6px 28px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:6px;height:6px;border-radius:50%;background:${cot.respondido?'var(--green)':'var(--muted)'};flex-shrink:0"></div>
-          <span style="font-size:.76rem;font-weight:600;color:${isBest&&cot.respondido?'var(--green)':'var(--text2)'}">${sup?.name||'—'}</span>
-          ${isBest&&cot.respondido?`<span style="font-size:.58rem;font-weight:700;color:var(--green);background:var(--green-light);padding:1px 6px;border-radius:10px;border:1px solid var(--green)">Melhor</span>`:''}
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div style="width:6px;height:6px;border-radius:50%;background:${cot.emFalta?'var(--red)':cot.respondido?'var(--green)':'var(--muted)'};flex-shrink:0"></div>
+          <span style="font-size:.76rem;font-weight:600;color:${cot.emFalta?'var(--red)':isBest&&cot.respondido?'var(--green)':'var(--text2)'}">${sup?.name||'—'}</span>
+          ${cot.emFalta?`<span style="font-size:.58rem;font-weight:700;color:var(--red);background:var(--red-light);padding:1px 6px;border-radius:10px;border:1px solid var(--red)">${lc('alert-circle',9,'currentColor')} Em falta</span>`:''}
+          ${isBest&&cot.respondido&&!cot.emFalta?`<span style="font-size:.58rem;font-weight:700;color:var(--green);background:var(--green-light);padding:1px 6px;border-radius:10px;border:1px solid var(--green)">Melhor</span>`:''}
         </div>
         ${sup?.phone?`<div style="font-size:.6rem;color:var(--muted);margin-top:1px;margin-left:12px">${sup.phone}</div>`:''}
       </td>
       <td colspan="2" class="c">
-        <label style="display:flex;align-items:center;gap:5px;justify-content:center;cursor:pointer;font-size:.68rem;white-space:nowrap">
-          <input type="checkbox" ${cot.respondido?'checked':''} onchange="marcarRespondido(${i.id},${idx},this.checked)" style="accent-color:var(--green);width:14px;height:14px">
-          ${cot.respondido?'Respondeu':'Aguardando'}
-        </label>
+        ${cot.emFalta ? `
+          <button onclick="desmarcarEmFalta(${i.id},${idx})"
+            style="padding:3px 8px;border-radius:var(--r6);border:1.5px solid var(--red);background:var(--red-light);color:var(--red);font-size:.67rem;font-weight:600;cursor:pointer">
+            ${lc('rotate-ccw',10,'currentColor')} Desfazer
+          </button>
+        ` : `
+          <label style="display:flex;align-items:center;gap:5px;justify-content:center;cursor:pointer;font-size:.68rem;white-space:nowrap">
+            <input type="checkbox" ${cot.respondido?'checked':''} onchange="marcarRespondido(${i.id},${idx},this.checked)" style="accent-color:var(--green);width:14px;height:14px">
+            ${cot.respondido?'Respondeu':'Aguardando'}
+          </label>
+        `}
       </td>
       <td class="r" style="padding-right:14px">
-        ${cot.respondido&&cot.precoUnit?`
+        ${cot.emFalta ? `
+          <div style="font-size:.74rem;color:var(--red);font-style:italic">Produto indisponível</div>
+        ` : cot.respondido&&cot.precoUnit ? `
           <div style="font-size:.86rem;font-weight:800;color:${isBest?'var(--green)':'var(--text)'};font-family:monospace">R$ ${fmt(total||0)}</div>
           <div style="font-size:.6rem;color:var(--muted)">R$${fmt(cot.precoUnit)}/${i.unidade}</div>
-        `:`
+        ` : `
           <div style="position:relative;display:inline-flex;align-items:center">
             <span style="position:absolute;left:7px;font-size:.65rem;color:var(--muted)">R$</span>
             <input type="number" value="${cot.precoUnit||''}" min="0" step="0.01" placeholder="0,00"
@@ -288,13 +306,21 @@ function _rowsItem(i) {
           </div>
         `}
       </td>
-      <td style="padding:6px 10px">
-        ${sup?.phone?`
-          <a href="https://wa.me/55${(sup.phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(_montaMsgCotacaoForn(sup,i))}" target="_blank"
-            style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#25D366;color:#fff;text-decoration:none">
-            ${lc('message-circle',13,'#fff')}
-          </a>
-        `:''}
+      <td style="padding:6px 8px">
+        <div style="display:flex;gap:4px;align-items:center">
+          ${!cot.emFalta&&sup?.phone?`
+            <a href="https://wa.me/55${(sup.phone||'').replace(/\D/g,'')}?text=${encodeURIComponent(_montaMsgCotacaoForn(sup,i))}" target="_blank"
+              style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#25D366;color:#fff;text-decoration:none" title="WA">
+              ${lc('message-circle',12,'#fff')}
+            </a>
+          `:''}
+          ${!cot.emFalta?`
+            <button onclick="marcarEmFalta(${i.id},${idx})" title="Marcar como em falta"
+              style="width:24px;height:24px;border-radius:50%;border:1.5px solid var(--red);background:var(--red-light);color:var(--red);cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
+              ${lc('alert-circle',11,'currentColor')}
+            </button>
+          `:''}
+        </div>
       </td>
       <td class="c">
         <button onclick="removerCotacao(${i.id},${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px">
@@ -308,9 +334,98 @@ function _rowsItem(i) {
 }
 
 function _melhorCotacao(cotacoes) {
-  const resp = cotacoes.filter(c => c.respondido && c.precoUnit > 0);
+  const resp = cotacoes.filter(c => c.respondido && c.precoUnit > 0 && !c.emFalta);
   if (!resp.length) return null;
   return resp.reduce((b,c) => c.precoUnit < b.precoUnit ? c : b);
+}
+
+function marcarEmFalta(itemId, idx) {
+  const i = _listaAtual.itens.find(x => x.id === itemId);
+  if (!i?.cotacoes?.[idx]) return;
+  i.cotacoes[idx].emFalta = true;
+  i.cotacoes[idx].respondido = true;
+  i.cotacoes[idx].precoUnit = null;
+  saveListas(); _renderEtapa1();
+  toast('Fornecedor marcado como "em falta"');
+}
+
+function desmarcarEmFalta(itemId, idx) {
+  const i = _listaAtual.itens.find(x => x.id === itemId);
+  if (!i?.cotacoes?.[idx]) return;
+  i.cotacoes[idx].emFalta = false;
+  i.cotacoes[idx].respondido = false;
+  saveListas(); _renderEtapa1();
+}
+
+// Editar item manual — abre popup para alterar fornecedor, preço, nome
+function abrirEditarItemManual(itemId) {
+  const i = _listaAtual.itens.find(x => x.id === itemId);
+  if (!i) return;
+  document.getElementById('popupEditItem')?.remove();
+  const popup = document.createElement('div');
+  popup.id = 'popupEditItem';
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+  popup.innerHTML = `
+    <div style="background:white;border-radius:var(--r14);padding:22px;width:100%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:.9rem;font-weight:800">${lc('edit-2',15,'var(--purple)')} Editar item</div>
+        <button onclick="document.getElementById('popupEditItem').remove()" style="background:none;border:none;cursor:pointer;padding:4px">${lc('x',16,'var(--muted)')}</button>
+      </div>
+      <div class="field"><label>Nome</label>
+        <input type="text" id="eiNome" class="inp" value="${i.nome}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label>Quantidade</label>
+          <input type="number" id="eiQtd" class="inp" value="${i.qtdSelecionada}" min="0.001" step="0.001">
+        </div>
+        <div class="field"><label>Unidade</label>
+          <select id="eiUnit" class="inp">
+            ${['un','kg','g','L','ml','cx','pct','sc'].map(u=>`<option ${i.unidade===u?'selected':''}>${u}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Preço estimado (R$)</label>
+        <input type="number" id="eiPreco" class="inp" value="${i.precoUnitEstimado||''}" min="0" step="0.01">
+      </div>
+      <div class="field"><label>Categoria</label>
+        <input type="text" id="eiCat" class="inp" value="${i.categoria||''}">
+      </div>
+      <div class="field"><label>Local de compra (deixe vazio para fornecedor)</label>
+        <input type="text" id="eiLocal" class="inp" value="${i.localCompra||''}" placeholder="Ex: Atacadão (compra presencial)">
+      </div>
+      <div class="field"><label>Observações</label>
+        <input type="text" id="eiObs" class="inp" value="${i.observacoes||''}">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button class="btn btn-outline" onclick="document.getElementById('popupEditItem').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarEdicaoItem(${itemId})">Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(popup);
+}
+
+function salvarEdicaoItem(itemId) {
+  const i = _listaAtual.itens.find(x => x.id === itemId);
+  if (!i) return;
+  const nome  = document.getElementById('eiNome')?.value.trim();
+  const qtd   = parseFloat(document.getElementById('eiQtd')?.value);
+  if (!nome) { toast('Informe o nome','err'); return; }
+  if (isNaN(qtd)||qtd<=0) { toast('Informe a quantidade','err'); return; }
+  i.nome     = nome;
+  i.qtdSelecionada = qtd;
+  i.qtdSugerida    = qtd;
+  i.unidade  = document.getElementById('eiUnit')?.value || i.unidade;
+  i.precoUnitEstimado = parseFloat(document.getElementById('eiPreco')?.value)||0;
+  i.categoria = document.getElementById('eiCat')?.value.trim() || i.categoria;
+  const local = document.getElementById('eiLocal')?.value.trim()||'';
+  i.localCompra = local;
+  i.tipoCompra  = local ? 'presencial' : (i.cotacoes?.length ? 'fornecedor' : i.tipoCompra);
+  i.observacoes = document.getElementById('eiObs')?.value.trim()||'';
+  _recalcEstimativa();
+  saveListas();
+  document.getElementById('popupEditItem')?.remove();
+  _renderEtapa1();
+  toast('Item atualizado!');
 }
 
 // Mensagem WA com link de formulário de cotação
@@ -597,6 +712,11 @@ function _cardAprovacaoItem(i, isPresencial) {
       </div>
     </div>
     <div style="padding:0 14px 10px 20px">
+      ${isReprov&&i.acaoReprovacao?`
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--red-light);border:1px solid var(--red);border-radius:var(--r6);margin-bottom:6px;font-size:.72rem;color:var(--red);font-weight:600">
+          ${lc('arrow-right',11,'currentColor')} Ação: ${_labelAcao[i.acaoReprovacao]||i.acaoReprovacao}
+        </div>
+      `:''}
       <input type="text" placeholder="Comentário do aprovador..." value="${i.comentarioAprovador||''}"
         style="width:100%;padding:5px 9px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.72rem;background:var(--surface)"
         onchange="setComentarioAprovador(${i.id},this.value)">
@@ -628,8 +748,68 @@ function salvarAprovador() {
   saveListas(); document.getElementById('popupAprovador')?.remove(); _renderEtapa2(); toast('Aprovador configurado!');
 }
 
-function aprovarItem2(itemId) { const i=_listaAtual.itens.find(x=>x.id===itemId); if(i){i.aprovado=true;saveListas();_renderEtapa2();} }
-function reprovarItem2(itemId) { const i=_listaAtual.itens.find(x=>x.id===itemId); if(i){i.aprovado=false;saveListas();_renderEtapa2();} }
+function aprovarItem2(itemId) { const i=_listaAtual.itens.find(x=>x.id===itemId); if(i){i.aprovado=true;i.acaoReprovacao='';saveListas();_renderEtapa2();} }
+
+function reprovarItem2(itemId) {
+  // Mostra popup de ação antes de reprovar
+  document.getElementById('popupReprovacao')?.remove();
+  const popup = document.createElement('div');
+  popup.id = 'popupReprovacao';
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+  const acoes = [
+    { id:'orcar_outro',    label:'Orçar com outro fornecedor', icon:'building-2'    },
+    { id:'pedir_prazo',    label:'Solicitar prazo de entrega', icon:'clock'         },
+    { id:'negociar',       label:'Negociar preço/condição',    icon:'trending-down' },
+    { id:'remover',        label:'Remover da lista',           icon:'trash-2'       },
+    { id:'compra_pres',    label:'Comprar presencialmente',    icon:'shopping-cart' },
+    { id:'aguardar',       label:'Aguardar próxima compra',    icon:'pause-circle'  },
+  ];
+  popup.innerHTML = `
+    <div style="background:white;border-radius:var(--r14);padding:22px;width:100%;max-width:380px;box-shadow:0 12px 40px rgba(0,0,0,.2)">
+      <div style="font-size:.9rem;font-weight:800;margin-bottom:6px">${lc('alert-triangle',15,'var(--red)')} Reprovar item</div>
+      <div style="font-size:.74rem;color:var(--muted);margin-bottom:14px">Qual ação o comprador deve tomar?</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+        ${acoes.map(a=>`
+          <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r8);cursor:pointer;transition:all .15s"
+            onmouseover="this.style.borderColor='var(--red)';this.style.background='var(--red-light)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.background='white'">
+            <input type="radio" name="acaoRep" value="${a.id}" style="accent-color:var(--red);width:15px;height:15px">
+            ${lc(a.icon,13,'var(--muted)')}
+            <span style="font-size:.78rem;font-weight:600">${a.label}</span>
+          </label>
+        `).join('')}
+      </div>
+      <div class="field" style="margin-bottom:14px"><label>Observação adicional (opcional)</label>
+        <input type="text" id="obsReprovacao" class="inp" placeholder="Ex: preço muito acima do mercado...">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="document.getElementById('popupReprovacao').remove()">Cancelar</button>
+        <button class="btn btn-red" onclick="confirmarReprovacao(${itemId})">Reprovar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(popup);
+}
+
+function confirmarReprovacao(itemId) {
+  const acao = document.querySelector('input[name="acaoRep"]:checked')?.value;
+  if (!acao) { toast('Selecione uma ação para o comprador','err'); return; }
+  const obs = document.getElementById('obsReprovacao')?.value.trim()||'';
+  const i = _listaAtual.itens.find(x=>x.id===itemId);
+  if (i) {
+    i.aprovado = false;
+    i.acaoReprovacao = acao;
+    i.comentarioAprovador = obs || i.comentarioAprovador;
+    saveListas();
+  }
+  document.getElementById('popupReprovacao')?.remove();
+  _renderEtapa2();
+}
+
+const _labelAcao = {
+  orcar_outro:'Orçar com outro fornecedor', pedir_prazo:'Solicitar prazo',
+  negociar:'Negociar preço', remover:'Remover da lista',
+  compra_pres:'Comprar presencialmente', aguardar:'Aguardar próxima compra',
+};
 function setComentarioAprovador(itemId,val) { const i=_listaAtual.itens.find(x=>x.id===itemId); if(i){i.comentarioAprovador=val;saveListas();} }
 function setQtdAprovada(itemId,val) { const i=_listaAtual.itens.find(x=>x.id===itemId); if(!i)return; const v=parseFloat(val); i.qtdAprovada=!isNaN(v)&&v>=0?v:i.qtdSelecionada; saveListas(); }
 
@@ -700,20 +880,34 @@ function _renderEtapa3() {
     }).join('')}
     ${itensPresencial.length?`<div class="card" style="margin-bottom:14px;overflow:hidden">
       <div style="padding:12px 16px;background:var(--orange-light);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <div><div style="font-size:.88rem;font-weight:800;color:var(--orange-dark)">${lc('shopping-cart',14,'var(--orange-dark)')} Compra Presencial</div></div>
+        <div>
+          <div style="font-size:.88rem;font-weight:800;color:var(--orange-dark)">${lc('shopping-cart',14,'var(--orange-dark)')} Compra Presencial</div>
+          <div style="font-size:.68rem;color:var(--muted)">Itens organizados por categoria · informe local e responsável</div>
+        </div>
         <button class="btn btn-outline btn-xs" onclick="imprimirListaPresencial()">${lc('printer',12)} Imprimir lista</button>
       </div>
-      ${itensPresencial.map((i,idx)=>`<div style="padding:12px 16px;border-bottom:1px solid var(--border);background:${idx%2===0?'var(--surface)':'var(--surface2)'}">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-          <div style="flex:1"><div style="font-size:.82rem;font-weight:600">${i.nome}</div></div>
-          <div style="font-size:.76rem;font-family:monospace">${fmt(i.qtdAprovada??i.qtdSelecionada)} ${i.unidade}</div>
-          <div style="font-size:.72rem;color:var(--orange-dark);font-weight:700">Teto: R$ ${fmt((i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitEstimado||0))}</div>
-        </div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
-          <input type="text" placeholder="Local de compra..." value="${i.localCompra||''}" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.74rem" onchange="setSuperCampo(${i.id},'localCompra',this.value)">
-          <input type="text" placeholder="Responsável" value="${i.responsavelCompra||''}" style="padding:5px 9px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.74rem" onchange="setSuperCampo(${i.id},'responsavelCompra',this.value)">
-        </div>
-      </div>`).join('')}
+      ${[...itensPresencial].sort((a,b)=>a.categoria.localeCompare(b.categoria)||a.nome.localeCompare(b.nome)).map((i, idx)=>{
+        const u = typeof getCurrentUser==='function'?getCurrentUser():null;
+        const respDefault = i.responsavelCompra || u?.name || '';
+        return `<div style="padding:12px 16px;border-bottom:1px solid var(--border);background:${idx%2===0?'var(--surface)':'var(--surface2)'}">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+            <div style="flex:1">
+              <div style="font-size:.82rem;font-weight:600">${i.nome}</div>
+              <div style="font-size:.62rem;color:var(--muted)">${i.categoria}</div>
+            </div>
+            <div style="font-size:.76rem;font-family:monospace">${fmt(i.qtdAprovada??i.qtdSelecionada)} ${i.unidade}</div>
+            <div style="font-size:.72rem;color:var(--orange-dark);font-weight:700">Teto: R$ ${fmt((i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitEstimado||0))}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+            <input type="text" placeholder="Local de compra (ex: Atacadão, Makro...)" value="${i.localCompra||''}"
+              style="padding:5px 9px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.74rem"
+              onchange="setSuperCampo(${i.id},'localCompra',this.value)">
+            <input type="text" placeholder="Responsável" value="${respDefault}"
+              style="padding:5px 9px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.74rem"
+              onchange="setSuperCampo(${i.id},'responsavelCompra',this.value)">
+          </div>
+        </div>`;
+      }).join('')}
     </div>`:''}`;
 
   window._ocBySup=Object.entries(bySup).map(([supId,itens])=>({sup:parseInt(supId)?suppliers.find(s=>s.id===parseInt(supId)):null,itens}));
@@ -729,28 +923,109 @@ function copiarOC3(idx) { const e=window._ocBySup?.[idx]; if(!e)return; navigato
 function setSuperCampo(itemId,campo,val) { const i=_listaAtual.itens.find(x=>x.id===itemId); if(i){i[campo]=val;saveListas();} }
 
 function imprimirListaPresencial() {
-  const l=_listaAtual; const itens=l.itens.filter(i=>i.tipoCompra==='presencial'); const cfg=getConfig();
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Lista Presencial ${l.codigo}</title>
-    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:12px;padding:20px}h1{font-size:16px;margin-bottom:4px}.sub{color:#666;font-size:11px;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#f0f0f0;padding:7px 10px;text-align:left;font-size:11px;border:1px solid #ddd}td{padding:8px 10px;border:1px solid #ddd;font-size:12px;vertical-align:top}tr:nth-child(even) td{background:#fafafa}.footer{margin-top:20px;font-size:11px;color:#666;border-top:1px dashed #ccc;padding-top:12px}@media print{body{padding:0}}</style></head><body>
-    <h1>${cfg.empresa||'Vai Ter Pizza!'} — Lista de Compra Presencial</h1>
-    <div class="sub">Código: ${l.codigo} · Data: ${fmtD(new Date().toISOString())} · ${itens.length} itens</div>
-    <table><thead><tr><th>#</th><th>Item</th><th>Qtd</th><th>Un.</th><th>Local sugerido</th><th>Teto (R$)</th><th>Obs.</th></tr></thead><tbody>
-    ${itens.map((i,idx)=>`<tr><td>${idx+1}</td><td><strong>${i.nome}</strong><br><small style="color:#888">${i.categoria}</small></td><td style="text-align:center">${fmt(i.qtdAprovada??i.qtdSelecionada)}</td><td style="text-align:center">${i.unidade}</td><td>${i.localCompra||'—'}</td><td style="text-align:right">R$ ${fmt((i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitEstimado||0))}</td><td>${i.observacoes||''}</td></tr>`).join('')}
-    </tbody></table>
-    <div class="footer">Responsável: ${l.itens.find(i=>i.responsavelCompra)?.responsavelCompra||'_____________________'} &nbsp;&nbsp;&nbsp; Assinatura: _____________________</div>
-    </body></html>`);
-  win.document.close(); win.print();
+  const l   = _listaAtual;
+  const u   = typeof getCurrentUser==='function' ? getCurrentUser() : null;
+  const cfg = getConfig();
+  const empresa = cfg.empresa || 'Vai Ter Pizza!';
+  const resp = l.itens.find(i=>i.responsavelCompra)?.responsavelCompra || u?.name || '___________________';
+
+  // Ordena por categoria > nome; agrupa por categoria
+  const itens = [...l.itens.filter(i=>i.tipoCompra==='presencial')]
+    .sort((a,b)=>a.categoria.localeCompare(b.categoria)||a.nome.localeCompare(b.nome));
+  const porCat = {};
+  itens.forEach(i=>{ if(!porCat[i.categoria]) porCat[i.categoria]=[]; porCat[i.categoria].push(i); });
+  const totalEst = itens.reduce((s,i)=>s+(i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitEstimado||0),0);
+
+  const win = window.open('','_blank');
+  win.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Lista Presencial '+l.codigo+'</title>'
+  +'<style>'
+  +'@import url(\'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap\');'
+  +'*{margin:0;padding:0;box-sizing:border-box}'
+  +'body{font-family:\'Inter\',Arial,sans-serif;font-size:11px;background:#fff;color:#1a1a2e;padding:24px}'
+  +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:3px solid #6B21D4;margin-bottom:16px}'
+  +'.empresa{font-size:17px;font-weight:800;color:#6B21D4}'
+  +'.sub{font-size:10px;color:#888;margin-top:2px}'
+  +'.meta{text-align:right;font-size:10px;color:#555;line-height:1.9}'
+  +'.meta strong{color:#1a1a2e}'
+  +'.kpis{display:flex;gap:10px;margin-bottom:16px}'
+  +'.kpi{flex:1;background:#f5f0ff;border:1px solid #d8b4fe;border-radius:6px;padding:7px 10px;text-align:center}'
+  +'.kpi-v{font-size:14px;font-weight:800;color:#6B21D4}'
+  +'.kpi-l{font-size:8.5px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:1px}'
+  +'.cat{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6B21D4;background:#f5f0ff;padding:5px 10px;border-radius:4px;margin:14px 0 5px}'
+  +'table{width:100%;border-collapse:collapse}'
+  +'thead th{background:#6B21D4;color:#fff;padding:6px 9px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}'
+  +'thead th.r{text-align:right} thead th.c{text-align:center}'
+  +'td{padding:6px 9px;font-size:10.5px;border-bottom:1px solid #f0f0f0;vertical-align:middle}'
+  +'tr:nth-child(even) td{background:#fafafa}'
+  +'.nm{font-weight:600} .ct{font-size:9px;color:#bbb}'
+  +'.r{text-align:right} .c{text-align:center}'
+  +'.chk{width:13px;height:13px;border:1.5px solid #6B21D4;border-radius:3px;display:inline-block;vertical-align:middle}'
+  +'.sub-tot td{background:#f5f0ff!important;font-weight:700;color:#6B21D4;border-top:1.5px solid #6B21D4;padding:6px 9px}'
+  +'.footer{margin-top:20px;padding-top:12px;border-top:1px dashed #ccc;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px}'
+  +'.ass{display:flex;flex-direction:column;align-items:center;gap:3px}'
+  +'.ass-linha{border-bottom:1px solid #aaa;width:180px}'
+  +'.ass-lbl{font-size:9px;color:#888}'
+  +'@media print{body{padding:8px}}'
+  +'</style></head><body>');
+  win.document.write('<div class="hdr"><div><div class="empresa">'+empresa+'</div><div class="sub">Lista de Compra Presencial</div></div>'
+  +'<div class="meta"><div><strong>Lista:</strong> '+l.codigo+'</div><div><strong>Data:</strong> '+fmtD(new Date().toISOString())+'</div>'
+  +'<div><strong>Responsável:</strong> '+resp+'</div></div></div>');
+  win.document.write('<div class="kpis">'
+  +'<div class="kpi"><div class="kpi-v">'+itens.length+'</div><div class="kpi-l">Itens</div></div>'
+  +'<div class="kpi"><div class="kpi-v">'+Object.keys(porCat).length+'</div><div class="kpi-l">Categorias</div></div>'
+  +'<div class="kpi"><div class="kpi-v">R$ '+fmt(totalEst)+'</div><div class="kpi-l">Teto máximo</div></div>'
+  +'</div>');
+
+  Object.entries(porCat).forEach(([cat,citens])=>{
+    const subTot = citens.reduce((s,i)=>s+(i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitEstimado||0),0);
+    win.document.write('<div class="cat">'+cat+'</div>');
+    win.document.write('<table><thead><tr>'
+    +'<th class="c" style="width:20px"></th><th>Item</th>'
+    +'<th class="c" style="width:55px">Qtd</th><th class="c" style="width:32px">Un.</th>'
+    +'<th style="width:110px">Local</th><th class="r" style="width:75px">Teto</th>'
+    +'<th style="width:90px">Obs.</th></tr></thead><tbody>');
+    citens.forEach(i=>{
+      win.document.write('<tr>'
+      +'<td class="c"><span class="chk"></span></td>'
+      +'<td><div class="nm">'+i.nome+'</div></td>'
+      +'<td class="c" style="font-family:monospace;font-weight:600">'+fmt(i.qtdAprovada??i.qtdSelecionada)+'</td>'
+      +'<td class="c" style="color:#aaa">'+i.unidade+'</td>'
+      +'<td style="color:#555">'+( i.localCompra||'—' )+'</td>'
+      +'<td class="r" style="font-weight:600">R$ '+fmt((i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitEstimado||0))+'</td>'
+      +'<td style="color:#aaa;font-size:9.5px">'+( i.observacoes||'' )+'</td></tr>');
+    });
+    win.document.write('<tr class="sub-tot"><td colspan="5">Subtotal '+cat+'</td>'
+    +'<td class="r">R$ '+fmt(subTot)+'</td><td></td></tr>');
+    win.document.write('</tbody></table>');
+  });
+
+  win.document.write('<div class="footer">'
+  +'<div class="ass"><div class="ass-linha"></div><div class="ass-lbl">'+resp+' — Responsável</div></div>'
+  +(l.observacoes?'<div style="flex:1;min-width:160px;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:7px 10px;font-size:10px"><strong>Obs.:</strong> '+l.observacoes+'</div>':'')
+  +'<div class="ass"><div class="ass-linha"></div><div class="ass-lbl">Conferência / Gerência</div></div>'
+  +'</div>');
+  win.document.write('<script>window.onload=()=>window.print();<\/script></body></html>');
+  win.document.close();
 }
 
 function avancarParaRecebimento() {
   _listaAtual.etapa=4; _listaAtual.status='recebimento';
   if (!_listaAtual.dataRecebimento) _listaAtual.dataRecebimento=new Date().toISOString().slice(0,10);
-  // Pré-preenche conferidoPor com o nome do usuário logado
-  if (!_listaAtual.conferidoPor) {
-    const u = typeof getCurrentUser==='function' ? getCurrentUser() : null;
-    _listaAtual.conferidoPor = u?.name || '';
-  }
+  // Pré-preenche conferente com nome do usuário logado
+  const u = typeof getCurrentUser==='function' ? getCurrentUser() : null;
+  const nomeConferente = u?.name || '';
+  if (!_listaAtual.conferidoPor) _listaAtual.conferidoPor = nomeConferente;
+  // Pré-preenche cada item
+  const horaAtual = `${String(new Date().getHours()).padStart(2,'0')}:00`;
+  _listaAtual.itens.forEach(i=>{
+    if (!i.conferidoPorItem)       i.conferidoPorItem = nomeConferente;
+    if (!i.dataRecebimentoItem)    i.dataRecebimentoItem = _listaAtual.dataRecebimento;
+    if (!i.horaRecebimentoItem)    i.horaRecebimentoItem = horaAtual;
+  });
+  // Pré-preenche responsavelCompra nos itens presenciais
+  _listaAtual.itens.filter(i=>i.tipoCompra==='presencial').forEach(i=>{
+    if (!i.responsavelCompra) i.responsavelCompra = nomeConferente;
+  });
   saveListas(); _renderDashCompras(); _renderEtapa4(); toast('Avançado para recebimento!');
 }
 
@@ -852,6 +1127,10 @@ function _renderEtapa4() {
           const diff=qtdR!==null?qtdR-qtdS:null;
           const isOk=i.conferido&&!i.divergencia;
           const isDivg=i.conferido&&i.divergencia;
+          // Pré-preenche com dados globais se não tiver individual
+          const iConf = i.conferidoPorItem || l.conferidoPor || '';
+          const iData = i.dataRecebimentoItem || l.dataRecebimento || new Date().toISOString().slice(0,10);
+          const iHora = i.horaRecebimentoItem || l.horaRecebimento || horas[0];
           return `<div style="border-bottom:1px solid var(--border);background:${isOk?'var(--green-light)':isDivg?'var(--yellow-light)':'var(--surface)'}">
             <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;flex-wrap:wrap">
               <div style="width:4px;align-self:stretch;background:${isOk?'var(--green)':isDivg?'var(--yellow)':'var(--border)'};border-radius:2px;flex-shrink:0"></div>
@@ -880,7 +1159,20 @@ function _renderEtapa4() {
                 </label>
               </div>
             </div>
-            <div style="padding:0 16px 8px 32px">
+            <!-- Dados individuais de recebimento -->
+            <div style="padding:6px 16px 10px 32px;background:${isOk?'rgba(0,0,0,.03)':'var(--surface2)'}">
+              <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-bottom:6px">
+                <input type="text" placeholder="Quem conferiu..." value="${iConf}"
+                  style="padding:4px 8px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.71rem"
+                  onchange="setItemRecCampo(${i.id},'conferidoPorItem',this.value)">
+                <input type="date" value="${iData}"
+                  style="padding:4px 8px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.71rem"
+                  onchange="setItemRecCampo(${i.id},'dataRecebimentoItem',this.value)">
+                <select style="padding:4px 6px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.71rem"
+                  onchange="setItemRecCampo(${i.id},'horaRecebimentoItem',this.value)">
+                  ${horas.map(h=>`<option value="${h}" ${iHora===h?'selected':''}>${h}</option>`).join('')}
+                </select>
+              </div>
               <input type="text" placeholder="Obs. de conferência..." value="${i.comentarioConferencia||''}"
                 style="width:100%;padding:4px 8px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.71rem;background:var(--surface)"
                 onchange="setComentarioConferencia(${i.id},this.value)">
@@ -904,7 +1196,20 @@ function _conferirTodoGrupo(supKey) {
   saveListas(); _renderEtapa4();
 }
 
-function _setRecGlobal(campo,val) { if(_listaAtual){_listaAtual[campo]=val;saveListas();} }
+function _setRecGlobal(campo,val) {
+  if (!_listaAtual) return;
+  _listaAtual[campo]=val;
+  // Propaga para itens que não têm valor individual definido
+  if (campo==='conferidoPor') {
+    _listaAtual.itens.forEach(i=>{ if(!i.conferidoPorItem) i.conferidoPorItem=val; });
+  }
+  saveListas();
+}
+
+function setItemRecCampo(itemId, campo, val) {
+  const i=_listaAtual.itens.find(x=>x.id===itemId);
+  if(i){i[campo]=val;saveListas();}
+}
 
 function setQtdRecebida(itemId,val) {
   const i=_listaAtual.itens.find(x=>x.id===itemId); if(!i) return;
