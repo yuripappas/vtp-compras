@@ -161,7 +161,7 @@
           </div>
           <div>
             <div class="card">
-              <div class="card-header"><div class="card-title"> Top Fornecedores</div><span class="badge b-purple">Score</span></div>
+              <div class="card-header"><div class="card-title">Top Fornecedores</div><span class="badge b-purple">Score</span></div>
               <div id="dashRanking"></div>
             </div>
             <div class="card">
@@ -274,7 +274,7 @@
             <option value="montagem"> Montagem incorreta</option>
             <option value="entrega"> Erro de entrega</option>
             <option value="validade"> Vencimento</option>
-            <option value="acidente">️ Acidente</option>
+            <option value="acidente">Acidente</option>
             <option value="outro"> Outro</option>
           </select>
           <button class="btn btn-outline btn-sm" onclick="clearDespFiltro()">Limpar</button>
@@ -381,85 +381,101 @@
       <!-- CONFIGURAÇÕES -->
               
 
-      <div class="page" id="page-configuracoes">
-        <div style="margin-bottom:20px">
-          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:2px">Configurações</h2>
-          <div style="font-size:.72rem;color:var(--muted)">Dados da empresa e preferências do sistema</div>
+      <div class="page" id="page-configuracoes" style="padding:0">
+        <!-- Tabs internas -->
+        <div style="background:var(--surface);border-bottom:1.5px solid var(--border);padding:0 24px;display:flex;gap:4px" id="cfgTabBar">
+          <button onclick="setCfgTab('empresa')" id="cfgTabEmpresa"
+            style="display:flex;align-items:center;gap:6px;padding:13px 16px;border:none;border-bottom:2.5px solid var(--purple);
+            background:none;color:var(--purple);font-size:.8rem;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">
+            Empresa
+          </button>
+          <button onclick="setCfgTab('cadastros')" id="cfgTabCadastros"
+            style="display:flex;align-items:center;gap:6px;padding:13px 16px;border:none;border-bottom:2.5px solid transparent;
+            background:none;color:var(--muted);font-size:.8rem;font-weight:500;cursor:pointer;font-family:Inter,sans-serif">
+            Cadastros
+          </button>
+          <button onclick="setCfgTab('usuarios')" id="cfgTabUsuarios"
+            style="display:flex;align-items:center;gap:6px;padding:13px 16px;border:none;border-bottom:2.5px solid transparent;
+            background:none;color:var(--muted);font-size:.8rem;font-weight:500;cursor:pointer;font-family:Inter,sans-serif">
+            Usuários
+          </button>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title"> Dados da Empresa</div></div>
-          <div class="card-body">
-            <div class="f2" style="gap:12px">
-              <div class="field"><label>Nome da empresa</label><input class="inp" id="cfgEmpresa" placeholder="ex: Vai Ter Pizza!"></div>
-              <div class="field"><label>Responsável pelas compras</label><input class="inp" id="cfgResponsavel" placeholder="ex: Yuri Pappas"></div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title"> WhatsApp da Empresa</div></div>
-          <div class="card-body">
-            <div style="background:var(--purple-xlight);border:1.5px solid var(--purple-light);border-radius:var(--r8);padding:12px 14px;font-size:.77rem;color:var(--text2);margin-bottom:14px;line-height:1.6">
-              <strong style="color:var(--purple)">Como funciona:</strong> Este número será usado para enviar cotações pelo WhatsApp. Cada fornecedor receberá apenas os insumos que ele trabalha, conforme cadastrado em <a href="#" onclick="goModule('cadastros')" style="color:var(--purple)">Cadastros → Fornecedores</a>.
-            </div>
-            <div class="f2">
-              <div class="field">
-                <label>Número WhatsApp (com DDD)</label>
-                <input class="inp" id="cfgWhatsapp" placeholder="ex: 82999999999" maxlength="11">
-                <span style="font-size:.65rem;color:var(--muted);margin-top:3px">Somente números, sem espaços ou traços</span>
-              </div>
-              <div class="field">
-                <label>Código da loja (Cardápio Web)</label>
-                <input class="inp" id="cfgCodLoja" placeholder="ex: 29503">
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title"> Notificações de Estoque</div></div>
-          <div class="card-body">
-            <div class="f2">
-              <div class="field">
-                <label>Percentual crítico (% do mínimo)</label>
-                <input class="inp" type="number" id="cfgPctCrit" placeholder="40" min="1" max="100">
-                <span style="font-size:.65rem;color:var(--muted);margin-top:3px">Padrão: 40% — abaixo disso fica CRÍTICO</span>
+
+        <!-- Aba: Empresa -->
+        <div id="cfgPanelEmpresa" style="padding:24px">
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><div class="card-title">Dados da Empresa</div></div>
+            <div class="card-body">
+              <div class="f2" style="gap:12px">
+                <div class="field"><label>Nome da empresa</label><input class="inp" id="cfgEmpresa" placeholder="ex: Vai Ter Pizza!"></div>
+                <div class="field"><label>Responsável pelas compras</label><input class="inp" id="cfgResponsavel" placeholder="ex: Yuri Pappas"></div>
               </div>
             </div>
           </div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header"><div class="card-title">WhatsApp da Empresa</div></div>
+            <div class="card-body">
+              <div style="background:var(--purple-xlight);border:1.5px solid var(--purple-light);border-radius:var(--r8);padding:12px 14px;font-size:.77rem;color:var(--text2);margin-bottom:14px;line-height:1.6">
+                Número usado para enviar cotações via WhatsApp. Cada fornecedor recebe apenas seus insumos vinculados em Cadastros.
+              </div>
+              <div class="f2">
+                <div class="field">
+                  <label>Número WhatsApp (com DDD)</label>
+                  <input class="inp" id="cfgWhatsapp" placeholder="ex: 82999999999" maxlength="11">
+                  <span style="font-size:.65rem;color:var(--muted);margin-top:3px">Somente números, sem espaços ou traços</span>
+                </div>
+                <div class="field">
+                  <label>Código da loja (Cardápio Web)</label>
+                  <input class="inp" id="cfgCodLoja" placeholder="ex: 29503">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header"><div class="card-title">Alertas de Estoque</div></div>
+            <div class="card-body">
+              <div class="f2">
+                <div class="field">
+                  <label>Percentual crítico (% do mínimo)</label>
+                  <input class="inp" type="number" id="cfgPctCrit" placeholder="40" min="1" max="100">
+                  <span style="font-size:.65rem;color:var(--muted);margin-top:3px">Padrão: 40% — abaixo disso o item fica CRÍTICO</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveConfiguracoes()">Salvar configurações</button>
         </div>
-        <button class="btn btn-primary" onclick="saveConfiguracoes()">Salvar configurações</button>
+
+        <!-- Aba: Cadastros (redireciona para o módulo) -->
+        <div id="cfgPanelCadastros" style="padding:24px;display:none">
+          <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r12);padding:24px;text-align:center;margin-bottom:16px">
+            <div style="font-size:.9rem;font-weight:700;margin-bottom:8px">Insumos, Fornecedores e Pré-preparo</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-bottom:16px">Gerencie todos os cadastros do sistema no módulo dedicado</div>
+            <button class="btn btn-primary" onclick="goModule('cadastros')">Ir para Cadastros</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px" id="cfgCadastrosResumo"></div>
+        </div>
+
+        <!-- Aba: Usuários (redireciona para o módulo) -->
+        <div id="cfgPanelUsuarios" style="padding:24px;display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:.96rem;font-weight:800;margin-bottom:3px">Usuários e Permissões</div>
+              <div style="font-size:.72rem;color:var(--muted)">Controle de acesso à plataforma</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Novo Usuário</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px" id="cfgUserList"></div>
+        </div>
       </div>
 
       <!-- RELATÓRIOS -->
-      <div class="page" id="page-relatorios">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
-          <div>
-            <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:2px">Relatórios & Inteligência</h2>
-            <div style="font-size:.72rem;color:var(--muted)">Histórico de cotações · evolução de preços · CMV estimado</div>
-          </div>
-          <!-- Filtro de período -->
-          <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r10);padding:8px 14px;flex-wrap:wrap;gap:8px">
-            <span style="font-size:.72rem;color:var(--muted);font-weight:600"> Período:</span>
-            <input type="date" class="inp" id="relDe" style="padding:5px 8px;width:140px" onchange="renderRelatorios()">
-            <span style="font-size:.72rem;color:var(--muted)">até</span>
-            <input type="date" class="inp" id="relAte" style="padding:5px 8px;width:140px" onchange="renderRelatorios()">
-            <button class="btn btn-outline btn-sm" onclick="clearRelFiltro()">Limpar</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-          <div class="card"><div class="card-header"><div class="card-title"> Histórico de Ciclos</div><span id="relCicloCount" class="badge b-gray"></span></div><div id="relHistorico"></div></div>
-          <div class="card"><div class="card-header"><div class="card-title"> Evolução de Preços</div></div><div class="card-body" id="relPrecos"></div></div>
-        </div>
-        <div class="card"><div class="card-header"><div class="card-title"> Desempenho por Fornecedor</div></div><div class="card-body" id="relFornecedores"></div></div>
+      <div class="page" id="page-relatorios" style="padding:0">
+        <div id="relatoriosContent" style="padding:24px"></div>
       </div>
 
-      <!-- USUÁRIOS -->
-      <div class="page" id="page-usuarios">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:12px">
-          <div><h2 style="font-size:1.1rem;font-weight:800;margin-bottom:2px">Usuários & Permissões</h2></div>
-          <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Novo Usuário</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:12px" id="userList"></div>
-      </div>
+            <!-- USUÁRIOS (integrado em Configurações) -->
+      <div class="page" id="page-usuarios" style="display:none"></div>
 
     </div>
   </div>
@@ -793,7 +809,8 @@
     </div>
     <div class="mf">
       <button class="btn btn-outline" onclick="closeModal('ovPDF')">Cancelar</button>
-      <button class="btn btn-primary" onclick="generatePDF()">️ Gerar PDF</button>
+      <button class="btn btn-primary" onclick="generatePDF()">
+      Gerar PDF</button>
     </div>
   </div>
 </div>
@@ -969,7 +986,7 @@
 <div class="overlay" id="ovCfgPrevisao">
   <div class="mbox" style="max-width:520px">
     <div class="mh">
-      <div class="mt">️ Configurar Previsão de Demanda</div>
+      <div class="mt"> Configurar Previsão de Demanda</div>
       <button class="mc" onclick="closeModal('ovCfgPrevisao')"></button>
     </div>
     <div class="mb" style="display:flex;flex-direction:column;gap:0">
@@ -993,7 +1010,7 @@
         <span style="font-size:.66rem;color:var(--muted)">temperatura ambiente quando a receita foi desenvolvida</span>
       </div>
 
-      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:12px 0 8px">️ Peso das bolas de massa</div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:12px 0 8px"> Peso das bolas de massa</div>
       <div class="f2">
         <div class="field">
           <label>Bola pequena (g de farinha)</label>
