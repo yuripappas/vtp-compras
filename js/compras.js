@@ -46,20 +46,67 @@ function _renderComprasTabs() {
 
 function _renderSemLista() {
   document.getElementById('comprasContent').innerHTML = `
-    <div style="text-align:center;padding:60px 24px">
+    <div style="text-align:center;padding:52px 24px">
       <div style="width:64px;height:64px;border-radius:50%;background:var(--purple-light);
         display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
         ${lc('shopping-cart', 28, 'var(--purple)')}
       </div>
       <div style="font-size:1.05rem;font-weight:800;margin-bottom:8px">Nenhuma lista ativa</div>
-      <div style="font-size:.82rem;color:var(--muted);margin-bottom:24px;max-width:320px;margin-left:auto;margin-right:auto">
-        Vá ao Estoque, adicione itens ao carrinho e clique em "Gerar Lista de Compras"
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:28px;max-width:340px;margin-left:auto;margin-right:auto">
+        Crie uma lista a partir do estoque ou inicie uma lista avulsa para compras pontuais.
       </div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="goModule('estoque')">${lc('package', 14, '#fff')} Ir para o Estoque</button>
-        <button class="btn btn-outline" onclick="setComprasTab('historico')">${lc('clock', 14, 'currentColor')} Ver histórico</button>
+
+      <!-- Opções de criação -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;max-width:520px;margin:0 auto 24px">
+        <button onclick="goModule('estoque')"
+          style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 16px;
+          background:var(--purple-xlight);border:2px solid var(--purple-light);border-radius:var(--r12);
+          cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='var(--purple)';this.style.background='var(--purple-light)'"
+          onmouseout="this.style.borderColor='var(--purple-light)';this.style.background='var(--purple-xlight)'">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center">
+            ${lc('package', 20, '#fff')}
+          </div>
+          <div>
+            <div style="font-size:.86rem;font-weight:700;color:var(--purple)">Gerar do Estoque</div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:2px">A partir dos itens críticos/baixos</div>
+          </div>
+        </button>
+
+        <button onclick="criarListaAvulsa()"
+          style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 16px;
+          background:var(--surface2);border:2px solid var(--border);border-radius:var(--r12);
+          cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='var(--purple)';this.style.background='var(--purple-xlight)'"
+          onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--surface);border:2px solid var(--border);display:flex;align-items:center;justify-content:center">
+            ${lc('plus-circle', 20, 'var(--purple)')}
+          </div>
+          <div>
+            <div style="font-size:.86rem;font-weight:700;color:var(--text)">Lista Avulsa</div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:2px">Adicione itens manualmente</div>
+          </div>
+        </button>
       </div>
+
+      <button class="btn btn-outline btn-sm" onclick="setComprasTab('historico')">
+        ${lc('clock', 13, 'currentColor')} Ver histórico de compras
+      </button>
     </div>`;
+}
+
+function criarListaAvulsa() {
+  // Cria lista vazia — sem itens do carrinho
+  const lista = novaLista([]);
+  lista.origem = 'avulsa';
+  saveListas();
+  _listaAtual = lista;
+  _comprasTab = 'lista';
+  _renderDashCompras();
+  _renderEtapa1();
+  // Abre modal de adicionar item automaticamente após breve delay
+  setTimeout(() => abrirAddItemManual(), 200);
+  toast('Lista avulsa criada! Adicione os itens.');
 }
 
 function _renderDashCompras() {
@@ -93,7 +140,12 @@ function _renderDashCompras() {
           </div>
           <button class="btn btn-red btn-xs" onclick="encerrarListaManual()">${lc('x', 12)} Encerrar</button>
         </div>
-      ` : ''}
+      ` : `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary btn-sm" onclick="criarListaAvulsa()">${lc('plus-circle',13,'#fff')} Nova lista</button>
+          <button class="btn btn-outline btn-sm" onclick="goModule('estoque')">${lc('package',13,'currentColor')} Do estoque</button>
+        </div>
+      `}
     </div>
     <div id="comprasTabs" style="display:flex;border-bottom:1px solid var(--border);margin:-16px -24px 0;padding:0 24px;gap:4px"></div>
     ${la ? `
@@ -129,16 +181,19 @@ function _renderEtapa1() {
   l.etapa = 1;
   saveListas();
 
-  // AUTO-POPULATE: para cada item com fornecedor padrão cadastrado,
-  // adiciona cotação automaticamente se ainda não tiver
+  // AUTO-POPULATE: para cada item, adiciona cotação de todos os fornecedores cadastrados
   l.itens.forEach(i => {
     if (!i.cotacoes) i.cotacoes = [];
-    // fornecedorId padrão do insumo no cadastro
     const itemCad = items.find(x => x.id === i.itemId);
-    const supPadrao = itemCad?.supId;
-    if (supPadrao && !i.cotacoes.some(c => c.supId === supPadrao)) {
-      i.cotacoes.push({ supId: supPadrao, precoUnit: null, respondido: false, prazo: '', pagamento: '' });
-    }
+    // Suporta supIds (novo) e supId (legado)
+    const supIds = itemCad?.supIds?.length
+      ? itemCad.supIds
+      : (itemCad?.supId ? [itemCad.supId] : []);
+    supIds.forEach(supId => {
+      if (!i.cotacoes.some(c => c.supId === supId)) {
+        i.cotacoes.push({ supId, precoUnit: null, respondido: false, prazo: '', pagamento: '', emFalta: false });
+      }
+    });
   });
   saveListas();
 
@@ -814,10 +869,13 @@ function setComentarioAprovador(itemId,val) { const i=_listaAtual.itens.find(x=>
 function setQtdAprovada(itemId,val) { const i=_listaAtual.itens.find(x=>x.id===itemId); if(!i)return; const v=parseFloat(val); i.qtdAprovada=!isNaN(v)&&v>=0?v:i.qtdSelecionada; saveListas(); }
 
 function aprovarLista() {
+  const u = typeof getCurrentUser==='function' ? getCurrentUser() : null;
   _listaAtual.itens.forEach(i=>{if(i.aprovado===null)i.aprovado=true;});
   _listaAtual.itens=_listaAtual.itens.filter(i=>i.aprovado!==false);
   _listaAtual.status='aprovada'; _listaAtual.etapa=3;
   _listaAtual.dataAprovacao=new Date().toISOString();
+  // Salva quem aprovou: aprovador configurado manualmente ou usuário logado
+  _listaAtual.aprovadoPor = _listaAtual.aprovadorNome || u?.name || '';
   _listaAtual.valorAprovado=_listaAtual.itens.reduce((s,i)=>s+(i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitFinal||i.precoUnitEstimado||0),0);
   saveListas(); _renderDashCompras(); _renderEtapa3(); toast('Lista aprovada!');
 }
@@ -1056,8 +1114,14 @@ function _renderEtapa4() {
       </div>
       <div style="display:flex;gap:7px;flex-wrap:wrap">
         <button class="btn btn-outline btn-sm" onclick="_renderEtapa3()">${lc('arrow-left',13)} OC</button>
-        <button class="btn btn-primary btn-sm" onclick="concluirLista()" ${!tudo?'disabled style="opacity:.5;cursor:not-allowed"':''}>
-          ${lc('check-circle',13,'#fff')} Concluir lista
+        <button class="btn btn-sm" onclick="concluirLista()"
+          style="${tudo
+            ? 'background:var(--green);color:#fff;border:none;'
+            : 'background:var(--surface2);color:var(--muted);border:1.5px solid var(--border);cursor:not-allowed;'
+          }display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:var(--r8);font-size:.82rem;font-weight:700;transition:all .3s"
+          ${!tudo?'disabled':''}>
+          ${tudo ? lc('check-circle',14,'#fff') : lc('circle',14,'var(--muted)')}
+          ${tudo ? 'Concluir lista' : `Aguardando (${total-conferidos} restantes)`}
         </button>
       </div>
     </div>
@@ -1230,6 +1294,9 @@ function setComentarioConferencia(itemId,val) { const i=_listaAtual.itens.find(x
 
 function concluirLista() {
   if(!_listaAtual) return;
+
+  const u = typeof getCurrentUser==='function' ? getCurrentUser() : null;
+
   _listaAtual.itens.forEach(i=>{
     if(!i.itemId) return;
     const item=items.find(x=>x.id===i.itemId); if(!item) return;
@@ -1237,8 +1304,10 @@ function concluirLista() {
     if(i.precoUnitFinal) item.cost=i.precoUnitFinal;
   });
   saveI();
+
   _listaAtual.status='concluida';
   _listaAtual.dataConclusao=new Date().toISOString();
+  _listaAtual.concluídoPor = u?.name || '';
   _listaAtual.valorFinal=_listaAtual.itens.reduce((s,i)=>s+(i.qtdRecebida??0)*(i.precoUnitFinal||i.precoUnitEstimado||0),0);
   saveListas();
 
@@ -1254,12 +1323,35 @@ function concluirLista() {
   });
   localStorage.setItem('vtp_cycle_history',JSON.stringify(cycleHistory));
 
-  _listaAtual=getListaAtiva();
-  // Vai direto para o histórico ao concluir
-  _comprasTab='historico';
-  renderDashboard();
-  renderComprasModule();
-  toast('Lista concluída! Estoque atualizado.');
+  // Feedback visual antes de redirecionar
+  const content = document.getElementById('comprasContent');
+  if (content) {
+    content.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--green-light);border:3px solid var(--green);
+          display:flex;align-items:center;justify-content:center;margin-bottom:20px;
+          animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)">
+          ${lc('check-circle',36,'var(--green)')}
+        </div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--green);margin-bottom:8px">Lista concluída!</div>
+        <div style="font-size:.84rem;color:var(--muted);margin-bottom:6px">Estoque atualizado com sucesso.</div>
+        <div style="font-size:.78rem;color:var(--muted)">Redirecionando para o histórico...</div>
+      </div>
+      <style>
+        @keyframes popIn {
+          0%{transform:scale(0);opacity:0}
+          100%{transform:scale(1);opacity:1}
+        }
+      </style>`;
+  }
+
+  // Aguarda 1.8s para o usuário ver o feedback e vai ao histórico
+  setTimeout(() => {
+    _listaAtual = getListaAtiva();
+    _comprasTab = 'historico';
+    renderDashboard();
+    renderComprasModule();
+  }, 1800);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1465,11 +1557,37 @@ function abrirAuditoria(listaId) {
           <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px">${lc('clock',12,'var(--muted)')} Linha do Tempo</div>
           <div style="display:flex;flex-direction:column;gap:0">
             ${[
-              {icon:'file-plus',label:'Lista criada',data:l.dataCriacao,detalhe:`por ${l.criadoPor}`,cor:'var(--purple)'},
-              {icon:'message-circle',label:'Cotação enviada',data:l.etapa>=2?l.dataCriacao:null,detalhe:`${Object.keys(bySup).filter(k=>k!=='0').length} fornecedor(es) cotado(s)`,cor:'var(--yellow)'},
-              {icon:'check-circle',label:'Aprovação',data:l.dataAprovacao,detalhe:l.aprovadorNome?`por ${l.aprovadorNome}`:'',cor:'var(--green)'},
-              {icon:'shopping-bag',label:'Ordem de compra',data:l.etapa>=3?(l.dataAprovacao||null):null,detalhe:'',cor:'var(--purple)'},
-              {icon:'package',label:'Recebimento concluído',data:l.dataConclusao,detalhe:`${l.conferidoPor?'Conferido por '+l.conferidoPor:''} ${l.dataRecebimento?'· '+fmtD(l.dataRecebimento)+' '+( l.horaRecebimento||''):''}`.trim(),cor:'var(--green)'},
+              {
+                icon:'file-plus', label:'Lista criada', data:l.dataCriacao,
+                detalhe: l.criadoPor ? `por <strong>${l.criadoPor}</strong>` : '',
+                cor:'var(--purple)'
+              },
+              {
+                icon:'message-circle', label:'Cotação enviada',
+                data: l.etapa>=2 ? l.dataCriacao : null,
+                detalhe: `${Object.keys(bySup).filter(k=>k!=='0').length} fornecedor(es) cotado(s)`,
+                cor:'var(--yellow)'
+              },
+              {
+                icon:'check-circle', label:'Aprovação',
+                data: l.dataAprovacao,
+                detalhe: (l.aprovadoPor||l.aprovadorNome)
+                  ? `por <strong>${l.aprovadoPor||l.aprovadorNome}</strong>`
+                  : 'sem registro de aprovador',
+                cor:'var(--green)'
+              },
+              {
+                icon:'shopping-bag', label:'Ordem de compra emitida',
+                data: l.etapa>=3 ? (l.dataAprovacao||null) : null,
+                detalhe: '',
+                cor:'var(--purple)'
+              },
+              {
+                icon:'package', label:'Lista concluída',
+                data: l.dataConclusao,
+                detalhe: l['concluídoPor'] ? `por <strong>${l['concluídoPor']}</strong>` : '',
+                cor:'var(--green)'
+              },
             ].map((e,idx,arr)=>{
               const done=!!e.data;
               return `<div style="display:flex;gap:14px;align-items:flex-start">
@@ -1479,20 +1597,26 @@ function abrirAuditoria(listaId) {
                   </div>
                   ${idx<arr.length-1?`<div style="width:2px;height:28px;background:${done?e.cor:'var(--border)'}"></div>`:''}
                 </div>
-                <div style="padding-bottom:${idx<arr.length-1?'0':'0'}px;padding-top:3px">
+                <div style="padding-top:3px;padding-bottom:4px">
                   <div style="font-size:.82rem;font-weight:${done?'700':'500'};color:${done?'var(--text)':'var(--muted)'}">${e.label}</div>
-                  ${done&&e.data?`<div style="font-size:.68rem;color:var(--muted)">${fmtDT(e.data)}${e.detalhe?' · '+e.detalhe:''}</div>`:`<div style="font-size:.68rem;color:var(--muted)">Não realizado</div>`}
+                  ${done&&e.data?`<div style="font-size:.68rem;color:var(--muted)">${fmtDT(e.data)}${e.detalhe?' · ':''}${e.detalhe||''}</div>`:`<div style="font-size:.68rem;color:var(--muted)">Não realizado</div>`}
                 </div>
               </div>`;
             }).join('')}
           </div>
         </div>
 
-        <!-- Aprovador -->
-        ${l.aprovadorNome?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r8);padding:10px 14px">
-          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">${lc('user',11,'var(--muted)')} Aprovador</div>
-          <div style="font-size:.84rem;font-weight:700">${l.aprovadorNome}</div>
-          ${l.aprovadorWa?`<div style="font-size:.7rem;color:var(--muted)">${lc('message-circle',11,'currentColor')} ${l.aprovadorWa}</div>`:''}
+        <!-- Aprovador card -->
+        ${(l.aprovadoPor||l.aprovadorNome)?`<div style="background:var(--green-light);border:1px solid var(--green);border-radius:var(--r8);padding:10px 14px;display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${lc('check-circle',16,'#fff')}
+          </div>
+          <div>
+            <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--green);margin-bottom:2px">Aprovado por</div>
+            <div style="font-size:.86rem;font-weight:700">${l.aprovadoPor||l.aprovadorNome}</div>
+            ${l.dataAprovacao?`<div style="font-size:.68rem;color:var(--muted)">${fmtDT(l.dataAprovacao)}</div>`:''}
+            ${l.aprovadorWa?`<div style="font-size:.68rem;color:var(--muted)">${lc('message-circle',10,'currentColor')} ${l.aprovadorWa}</div>`:''}
+          </div>
         </div>`:''}
 
         <!-- Itens por fornecedor -->
@@ -1501,12 +1625,24 @@ function abrirAuditoria(listaId) {
           const total=itens.reduce((s,i)=>s+(i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitFinal||i.precoUnitEstimado||0),0);
           const totalRecebido=itens.reduce((s,i)=>s+(i.qtdRecebida??0)*(i.precoUnitFinal||i.precoUnitEstimado||0),0);
           return `<div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
               <div style="font-size:.78rem;font-weight:700;color:var(--purple);display:flex;align-items:center;gap:6px">
                 ${lc('building-2',13,'var(--purple)')} ${sup?.name||'Fornecedor não definido'}
                 ${sup?.seller?`<span style="font-size:.66rem;color:var(--muted);font-weight:400">· ${sup.seller}</span>`:''}
               </div>
-              <div style="font-size:.76rem;font-weight:700;color:var(--purple)">R$${fmt(total)}</div>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <div style="font-size:.76rem;font-weight:700;color:var(--purple)">R$${fmt(total)}</div>
+                ${(()=>{
+                  // Datas de recebimento distintas neste grupo de fornecedor
+                  const datas = [...new Set(itens.map(i=>i.dataRecebimentoItem||'').filter(Boolean))];
+                  const confs = [...new Set(itens.map(i=>i.conferidoPorItem||'').filter(Boolean))];
+                  if(!datas.length && !confs.length) return '';
+                  return `<div style="font-size:.68rem;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:var(--r6);border:1px solid var(--border)">
+                    ${confs.length?`${lc('user',10,'currentColor')} ${confs.join(', ')} `:' '}
+                    ${datas.length?`${lc('calendar',10,'currentColor')} ${datas.map(d=>fmtD(d)).join(', ')}`:'' }
+                  </div>`;
+                })()}
+              </div>
             </div>
             <div style="border:1px solid var(--border);border-radius:var(--r8);overflow:hidden">
               <table style="width:100%;border-collapse:collapse">
@@ -1516,6 +1652,7 @@ function abrirAuditoria(listaId) {
                   <th style="padding:7px 12px;text-align:center;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Recebido</th>
                   <th style="padding:7px 12px;text-align:right;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Preço unit.</th>
                   <th style="padding:7px 12px;text-align:right;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Total</th>
+                  <th style="padding:7px 12px;text-align:left;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Conferência</th>
                   <th style="padding:7px 12px;text-align:center;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Status</th>
                 </tr></thead>
                 <tbody>
@@ -1538,6 +1675,12 @@ function abrirAuditoria(listaId) {
                       </td>
                       <td style="padding:7px 12px;text-align:right;font-size:.76rem;font-family:monospace">R$${fmt(i.precoUnitFinal||i.precoUnitEstimado||0)}</td>
                       <td style="padding:7px 12px;text-align:right;font-size:.76rem;font-weight:700;font-family:monospace;color:var(--purple)">R$${fmt((i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitFinal||i.precoUnitEstimado||0))}</td>
+                      <td style="padding:7px 12px">
+                        ${i.conferidoPorItem||i.dataRecebimentoItem?`
+                          <div style="font-size:.72rem;font-weight:600">${i.conferidoPorItem||'—'}</div>
+                          <div style="font-size:.62rem;color:var(--muted)">${i.dataRecebimentoItem?fmtD(i.dataRecebimentoItem):''} ${i.horaRecebimentoItem||''}</div>
+                        `:`<span style="font-size:.68rem;color:var(--muted)">—</span>`}
+                      </td>
                       <td style="padding:7px 12px;text-align:center">${aprov}</td>
                     </tr>`;
                   }).join('')}
@@ -1546,6 +1689,7 @@ function abrirAuditoria(listaId) {
                   <tr style="background:var(--purple-xlight);border-top:2px solid var(--purple-light)">
                     <td colspan="4" style="padding:7px 12px;font-size:.76rem;font-weight:700">Total do fornecedor</td>
                     <td style="padding:7px 12px;text-align:right;font-size:.82rem;font-weight:800;color:var(--purple);font-family:monospace">R$${fmt(total)}</td>
+                    <td></td>
                     <td></td>
                   </tr>
                 </tfoot>

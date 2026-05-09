@@ -471,7 +471,7 @@ function renderFornecedores() {
     return;
   }
   el.innerHTML = suppliers.map(s => {
-    const si = items.filter(i => i.supId === s.id);
+    const si = items.filter(i => { const ids=i.supIds?.length?i.supIds:(i.supId?[i.supId]:[]); return ids.includes(s.id); });
     return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r12);padding:16px;cursor:pointer;transition:border-color .15s" onclick="openEditSup(${s.id})">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div>
@@ -517,7 +517,7 @@ function openEditSup(id) {
   document.getElementById('eSupId').value   = id;
   document.getElementById('delSupBtn').style.display = 'inline-flex';
   const srch = document.getElementById('sfItemSearch'); if(srch) srch.value = '';
-  renderSupCbx(items.filter(i => i.supId === id).map(i => i.id));
+  renderSupCbx(items.filter(i => { const ids=i.supIds?.length?i.supIds:(i.supId?[i.supId]:[]); return ids.includes(id); }).map(i => i.id));
   // Carrega categorias salvas como array
   const cats = Array.isArray(s.cats) ? s.cats : (s.cats ? s.cats.split(',').map(c => c.trim()).filter(Boolean) : []);
   renderCatTags(cats);
@@ -616,7 +616,7 @@ function saveSup() {
   if (editSupId) {
     const idx = suppliers.findIndex(s => s.id === editSupId);
     if (idx >= 0) suppliers[idx] = { ...suppliers[idx], ...data };
-    items.forEach(i => { if (i.supId === editSupId) i.supId = null; });
+    items.forEach(i => { if(i.supIds) i.supIds=i.supIds.filter(x=>x!==editSupId); if(i.supId===editSupId) i.supId=i.supIds?.[0]??null; });
     checked.forEach(iid => { const it = items.find(i => i.id === iid); if (it) it.supId = editSupId; });
     toast(`${lc("check-circle",14,"var(--green)")} "${name}" atualizado!`);
   } else {
@@ -635,7 +635,7 @@ function deleteSup() {
   const s = suppliers.find(x => x.id === editSupId);
   if (!s || !confirm(`Excluir "${s.name}"?`)) return;
   suppliers = suppliers.filter(x => x.id !== editSupId);
-  items.forEach(i => { if (i.supId === editSupId) i.supId = null; });
+  items.forEach(i => { if(i.supIds) i.supIds=i.supIds.filter(x=>x!==editSupId); if(i.supId===editSupId) i.supId=i.supIds?.[0]??null; });
   saveS(); saveI();
   closeModal('ovSup');
   renderFornecedores();
@@ -702,7 +702,7 @@ function renderRelatorios() {
   document.getElementById('relFornecedores').innerHTML = suppliers.length
     ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
         ${suppliers.map(s => {
-          const si = items.filter(i => i.supId === s.id);
+          const si = items.filter(i => { const ids=i.supIds?.length?i.supIds:(i.supId?[i.supId]:[]); return ids.includes(s.id); });
           return `<div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r10);padding:12px">
             <div style="font-size:.82rem;font-weight:700;margin-bottom:4px">${s.name}</div>
             ${s.seller ? `<div style="font-size:.7rem;color:var(--muted)">${lc("user",14,"currentColor")} ${s.seller}</div>` : ''}

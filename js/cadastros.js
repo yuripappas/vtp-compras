@@ -69,7 +69,9 @@ function renderCadInsumos() {
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
         ${catItems.map(item => {
           const b   = (item.brands || []).filter(x => x);
-          const sup = suppliers.find(s => s.id === item.supId);
+          // Suporta supIds (novo) e supId (legado)
+          const supIds = item.supIds?.length ? item.supIds : (item.supId ? [item.supId] : []);
+          const sups   = supIds.map(id => suppliers.find(s => s.id === id)).filter(Boolean);
           return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r10);padding:14px;transition:border-color .15s;cursor:pointer" onclick="openEditItem(${item.id})">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
               <div>
@@ -89,7 +91,15 @@ function renderCadInsumos() {
                 <span style="color:var(--muted)">Custo ref.</span><span style="font-weight:600;color:var(--purple)">R$ ${fmt(item.cost)}</span>
               </div>
             </div>
-            ${sup ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:.68rem;color:var(--muted)">${lc("store",12,"var(--muted)")} ${sup.name}</div>` : ''}
+            ${sups.length ? `
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+                <div style="font-size:.62rem;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;font-weight:600">
+                  ${lc("building-2",10,"var(--muted)")} ${sups.length > 1 ? sups.length+' fornecedores' : 'Fornecedor'}
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:3px">
+                  ${sups.map((s,idx) => `<span class="badge ${idx===0?'b-purple':'b-gray'}" style="font-size:.6rem">${idx===0?'★ ':''}${s.name}</span>`).join('')}
+                </div>
+              </div>` : ''}
             ${b.length ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:7px">${b[0] ? `<span class="badge b-purple" style="font-size:.58rem">⭐ ${b[0]}</span>` : ''}${b.slice(1).map(x => `<span class="badge b-gray" style="font-size:.58rem">${x}</span>`).join('')}</div>` : ''}
           </div>`;
         }).join('')}
@@ -105,7 +115,7 @@ function openItemModal() {
   ['fName','fCat','fB0','fB1','fB2','fCode'].forEach(id => document.getElementById(id).value = '');
   ['fMin','fIdeal','fCost'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('fUnit').value = 'kg';
-  populateSupSel(null);
+  populateSupChecks([]);
   document.getElementById('delItemBtn').style.display = 'none';
   document.getElementById('ovItem').classList.add('open');
   setTimeout(() => document.getElementById('fName').focus(), 80);
@@ -127,21 +137,44 @@ function openEditItem(id) {
   document.getElementById('fB0').value = b[0] || '';
   document.getElementById('fB1').value = b[1] || '';
   document.getElementById('fB2').value = b[2] || '';
-  populateSupSel(item.supId);
+  // Suporta supIds (array novo) e supId (legado)
+  const supIds = item.supIds?.length ? item.supIds : (item.supId ? [item.supId] : []);
+  populateSupChecks(supIds);
   document.getElementById('delItemBtn').style.display = 'inline-flex';
   document.getElementById('ovItem').classList.add('open');
 }
 
-function populateSupSel(selId) {
-  document.getElementById('fSupId').innerHTML =
-    '<option value="">— Sem fornecedor —</option>' +
-    suppliers.map(s => `<option value="${s.id}"${s.id === selId ? ' selected' : ''}>${s.name}</option>`).join('');
+function populateSupChecks(selIds) {
+  const wrap = document.getElementById('fSupIds');
+  if (!wrap) return;
+  if (!suppliers.length) {
+    wrap.innerHTML = `<span style="font-size:.72rem;color:var(--muted);font-style:italic">Nenhum fornecedor cadastrado</span>`;
+    return;
+  }
+  const sel = new Set((selIds||[]).map(Number));
+  wrap.innerHTML = suppliers.map(s => `
+    <label style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:var(--r6);cursor:pointer;
+      background:${sel.has(s.id)?'var(--purple-xlight)':'transparent'};transition:background .1s"
+      onmouseover="this.style.background='var(--purple-xlight)'" onmouseout="this.style.background='${sel.has(s.id)?'var(--purple-xlight)':'transparent'}'">
+      <input type="checkbox" value="${s.id}" ${sel.has(s.id)?'checked':''}
+        style="accent-color:var(--purple);width:15px;height:15px;flex-shrink:0"
+        onchange="this.closest('label').style.background=this.checked?'var(--purple-xlight)':'transparent'">
+      <span style="font-size:.78rem;font-weight:${sel.has(s.id)?'600':'400'}">${s.name}</span>
+      ${s.seller?`<span style="font-size:.65rem;color:var(--muted);margin-left:auto">${s.seller}</span>`:''}
+    </label>
+  `).join('');
+}
+
+function getSupCheckedIds() {
+  const wrap = document.getElementById('fSupIds');
+  if (!wrap) return [];
+  return [...wrap.querySelectorAll('input[type=checkbox]:checked')].map(cb => parseInt(cb.value));
 }
 
 function saveItem() {
   const name = document.getElementById('fName').value.trim();
   if (!name) { toast('Informe o nome', 'err'); return; }
-  const supVal = document.getElementById('fSupId').value;
+  const supIds = getSupCheckedIds();
   const data = {
     name,
     cat:    document.getElementById('fCat').value.trim() || 'Outros',
@@ -150,7 +183,8 @@ function saveItem() {
     ideal:  parseFloat(document.getElementById('fIdeal').value) || 0,
     cost:   parseFloat(document.getElementById('fCost').value)  || 0,
     code:   document.getElementById('fCode').value.trim(),
-    supId:  supVal ? parseInt(supVal) : null,
+    supIds,                          // array de IDs (novo)
+    supId:  supIds[0] ?? null,       // mantém legado para compatibilidade
     brands: [
       document.getElementById('fB0').value.trim(),
       document.getElementById('fB1').value.trim(),
@@ -317,7 +351,10 @@ function renderFornecedores() {
   }
 
   el.innerHTML = filt.map(s => {
-    const si = items.filter(i => i.supId === s.id);
+    const si = items.filter(i => {
+      const ids = i.supIds?.length ? i.supIds : (i.supId ? [i.supId] : []);
+      return ids.includes(s.id);
+    });
     return `<div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r12);padding:16px;cursor:pointer;transition:border-color .15s" onclick="openEditSup(${s.id})">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div>
@@ -361,7 +398,10 @@ function openEditSup(id) {
   document.getElementById('sfCats').value   = s.cats   || '';
   document.getElementById('eSupId').value   = id;
   document.getElementById('delSupBtn').style.display = 'inline-flex';
-  renderSupCbx(items.filter(i => i.supId === id).map(i => i.id));
+  renderSupCbx(items.filter(i => {
+    const ids = i.supIds?.length ? i.supIds : (i.supId ? [i.supId] : []);
+    return ids.includes(id);
+  }).map(i => i.id));
   document.getElementById('ovSup').classList.add('open');
 }
 
@@ -413,13 +453,31 @@ function saveSup() {
   if (editSupId) {
     const idx = suppliers.findIndex(s => s.id === editSupId);
     if (idx >= 0) suppliers[idx] = { ...suppliers[idx], ...data };
-    items.forEach(i => { if (i.supId === editSupId) i.supId = null; });
-    checked.forEach(iid => { const it = items.find(i => i.id === iid); if (it) it.supId = editSupId; });
+    // Remove este fornecedor de todos os insumos e re-adiciona só nos marcados
+    items.forEach(i => {
+      // Remove do array supIds
+      if (i.supIds) i.supIds = i.supIds.filter(id => id !== editSupId);
+      // Legado
+      if (i.supId === editSupId) i.supId = null;
+    });
+    checked.forEach(iid => {
+      const it = items.find(i => i.id === iid);
+      if (!it) return;
+      if (!it.supIds) it.supIds = it.supId ? [it.supId] : [];
+      if (!it.supIds.includes(editSupId)) it.supIds.push(editSupId);
+      if (!it.supId) it.supId = editSupId; // legado: primeiro da lista
+    });
     toast(`${lc("check-circle",14,"var(--green)")} "${name}" atualizado!`);
   } else {
     const nid = nextSid++;
     suppliers.push({ id: nid, ...data });
-    checked.forEach(iid => { const it = items.find(i => i.id === iid); if (it) it.supId = nid; });
+    checked.forEach(iid => {
+      const it = items.find(i => i.id === iid);
+      if (!it) return;
+      if (!it.supIds) it.supIds = it.supId ? [it.supId] : [];
+      if (!it.supIds.includes(nid)) it.supIds.push(nid);
+      if (!it.supId) it.supId = nid; // legado
+    });
     toast(`${lc("check-circle",14,"var(--green)")} "${name}" cadastrado!`);
   }
   saveS(); saveI();
@@ -432,7 +490,10 @@ function deleteSup() {
   const s = suppliers.find(x => x.id === editSupId);
   if (!s || !confirm(`Excluir "${s.name}"?`)) return;
   suppliers = suppliers.filter(x => x.id !== editSupId);
-  items.forEach(i => { if (i.supId === editSupId) i.supId = null; });
+  items.forEach(i => {
+    if (i.supIds) i.supIds = i.supIds.filter(id => id !== editSupId);
+    if (i.supId === editSupId) i.supId = i.supIds?.[0] ?? null;
+  });
   saveS(); saveI();
   closeModal('ovSup');
   renderFornecedores();
