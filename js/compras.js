@@ -1339,7 +1339,7 @@ function _renderEtapa2Cotacao() {
       </div>
     </div>
 
-    \${prazoHtml}
+    ${prazoHtml}
 
     <div class="card" style="margin-bottom:16px;overflow:hidden">
       <div class="tbl-wrap" style="border:none">
@@ -1353,12 +1353,12 @@ function _renderEtapa2Cotacao() {
             <th class="c" style="width:32px"></th>
           </tr></thead>
           <tbody id="cotacaoBody">
-            \${l.itens.map(i => _rowsItem(i)).join('')}
+            ${l.itens.map(i => _rowsItem(i)).join('')}
           </tbody>
           <tfoot>
             <tr style="background:var(--purple-xlight)">
               <td colspan="3" style="padding:10px 14px;font-weight:700;font-size:.82rem">Total estimado</td>
-              <td class="r" style="padding:10px 14px;font-weight:800;font-size:.9rem;color:var(--purple)">R$ \${fmt(l.valorEstimado)}</td>
+              <td class="r" style="padding:10px 14px;font-weight:800;font-size:.9rem;color:var(--purple)">R$ ${fmt(l.valorEstimado)}</td>
               <td colspan="2"></td>
             </tr>
           </tfoot>
@@ -1369,7 +1369,7 @@ function _renderEtapa2Cotacao() {
     <div class="field" style="margin-bottom:20px">
       <label>Observações gerais</label>
       <textarea class="inp" rows="2" placeholder="Condições de pagamento, urgência..."
-        onchange="setObsLista(this.value)">\${l.observacoes||''}</textarea>
+        onchange="setObsLista(this.value)">${l.observacoes||''}</textarea>
     </div>
 
     <div style="display:flex;justify-content:flex-end">
