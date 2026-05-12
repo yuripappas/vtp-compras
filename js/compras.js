@@ -188,6 +188,25 @@ function _renderEtapa3() { _renderEtapa3Aprovacao(); }
 // ══════════════════════════════════════════════════════════════
 
 if (!window._e1Filtro) window._e1Filtro = { search:'', cat:'', status:'need' };
+if (!window._e1ModoEmb) window._e1ModoEmb = false; // false = base (kg), true = embalagem
+
+// ── Helpers de embalagem ──────────────────────────────────────
+// Converte qtd em unidade base para embalagens (arredonda para cima)
+function toEmb(item, qtdBase) {
+  if (!item?.qtdEmb || item.qtdEmb <= 0) return null;
+  return Math.ceil(qtdBase / item.qtdEmb);
+}
+// Converte embalagens para unidade base
+function fromEmb(item, embs) {
+  if (!item?.qtdEmb || item.qtdEmb <= 0) return embs;
+  return parseFloat((embs * item.qtdEmb).toFixed(3));
+}
+// Formata quantidade com informação de embalagem
+function fmtQtdEmb(item, qtdBase) {
+  if (!item?.unidCompra || !item?.qtdEmb || item.qtdEmb <= 0) return null;
+  const embs = toEmb(item, qtdBase);
+  return { embs, texto: `${embs} ${item.unidCompra}(s) = ${fmt(qtdBase)} ${item.unit}` };
+}
 
 function _renderEtapa1() {
   _listaAtual.etapa = 1;
@@ -220,7 +239,20 @@ function _e1RenderEstrutura() {
               Adicione itens ao carrinho. Itens com necessidade aparecem primeiro.
             </div>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <!-- Toggle kg / embalagem — só aparece se houver itens com embalagem cadastrada -->
+            <div id="e1ToggleModoWrap" style="display:none;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r8);padding:3px;display:flex;gap:2px">
+              <button id="e1BtnBase" onclick="e1SetModoEmb(false)"
+                style="padding:5px 11px;border-radius:var(--r6);border:none;font-size:.74rem;font-weight:600;cursor:pointer;transition:all .15s;
+                background:var(--surface);color:var(--muted)">
+                ${lc('weight',11,'currentColor')} Base
+              </button>
+              <button id="e1BtnEmb" onclick="e1SetModoEmb(true)"
+                style="padding:5px 11px;border-radius:var(--r6);border:none;font-size:.74rem;font-weight:600;cursor:pointer;transition:all .15s;
+                background:var(--surface);color:var(--muted)">
+                ${lc('package',11,'currentColor')} Embalagem
+              </button>
+            </div>
             <button onclick="imprimirCarrinho()"
               style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r8);
               border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:.78rem;font-weight:600;cursor:pointer">
@@ -275,16 +307,15 @@ function _e1RenderEstrutura() {
 }
 
 function _e1BindFiltros() {
-  // Search — usa input event com debounce leve, sem re-render completo
+  // Search
   const searchEl = document.getElementById('e1Search');
   if (searchEl) {
     searchEl.oninput = function() {
       window._e1Filtro.search = this.value;
-      _e1RenderTabela(); // só tabela, não mexe no input
+      _e1RenderTabela();
     };
   }
-
-  // Category select
+  // Category
   const catEl = document.getElementById('e1Cat');
   if (catEl) {
     catEl.onchange = function() {
@@ -292,9 +323,39 @@ function _e1BindFiltros() {
       _e1RenderTabela();
     };
   }
-
-  // Botões de filtro
+  // Filtro buttons
   _e1RenderFiltrosBtns();
+  // Toggle modo embalagem — mostra se houver algum insumo com embalagem cadastrada
+  _e1AtualizarToggle();
+}
+
+function _e1AtualizarToggle() {
+  const temEmb = items.some(i => !i.isProd && i.unidCompra && i.qtdEmb > 0);
+  const wrap   = document.getElementById('e1ToggleModoWrap');
+  if (!wrap) return;
+  wrap.style.display = temEmb ? 'flex' : 'none';
+  _e1AtualizarBotoesToggle();
+}
+
+function _e1AtualizarBotoesToggle() {
+  const modo   = window._e1ModoEmb;
+  const btnBase= document.getElementById('e1BtnBase');
+  const btnEmb = document.getElementById('e1BtnEmb');
+  if (btnBase) {
+    btnBase.style.background = !modo ? 'var(--purple)' : 'transparent';
+    btnBase.style.color      = !modo ? '#fff' : 'var(--muted)';
+  }
+  if (btnEmb) {
+    btnEmb.style.background = modo ? 'var(--purple)' : 'transparent';
+    btnEmb.style.color      = modo ? '#fff' : 'var(--muted)';
+  }
+}
+
+function e1SetModoEmb(modoEmb) {
+  window._e1ModoEmb = modoEmb;
+  _e1AtualizarBotoesToggle();
+  _e1RenderTabela();
+  _e1RenderCarrinho();
 }
 
 function _e1RenderFiltrosBtns() {
@@ -367,28 +428,44 @@ function _e1RenderTabela() {
       const bg     = inCart ? 'var(--purple-xlight)' : (rowBg[s]||'var(--surface)');
       const suger  = need > 0 ? need : (i.min || 1);
 
-      // Coluna "Adicionar" — input direto com onchange que não re-renderiza a página
+      // Modo embalagem: converte sugestão e input para embalagens
+      const modoEmb   = window._e1ModoEmb && i.unidCompra && i.qtdEmb > 0;
+      const needEmbs  = modoEmb && need > 0 ? toEmb(i, need) : null;
+      const inCartEmbs= modoEmb && inCart ? toEmb(i, inCart.qtdSelecionada) : null;
+      const displayVal= inCart ? (modoEmb && inCartEmbs ? inCartEmbs : inCart.qtdSelecionada) : '';
+      const displayUnit= modoEmb ? (i.unidCompra||i.unit) : i.unit;
+      const displayStep= modoEmb ? 1 : 0.001;
+
+      // Coluna "Adicionar"
       const addCol = inCart ? `
-        <div style="display:inline-flex;align-items:center;gap:4px;background:var(--purple);border-radius:var(--r8);padding:4px 8px">
-          <button onclick="e1AjustarQtd(${i.id},-1)"
-            style="width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.25);color:#fff;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
-          <input type="number" id="e1qty_${i.id}" value="${inCart.qtdSelecionada}" min="0.001" step="0.001"
-            style="width:56px;border:none;background:transparent;font-size:.82rem;font-weight:800;text-align:center;color:#fff;font-family:monospace"
-            onchange="e1SetQtd(${i.id},this.value)"
-            onblur="e1SetQtd(${i.id},this.value)">
-          <span style="font-size:.62rem;color:rgba(255,255,255,.8);white-space:nowrap">${i.unit}</span>
-          <button onclick="e1AjustarQtd(${i.id},1)"
-            style="width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.25);color:#fff;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
-          <button onclick="e1RemoverItem(${i.id})"
-            style="width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            ${lc('x',10,'#fff')}
-          </button>
+        <div style="display:inline-flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <div style="display:inline-flex;align-items:center;gap:4px;background:var(--purple);border-radius:var(--r8);padding:4px 8px">
+            <button onclick="e1AjustarQtd(${i.id},-1)"
+              style="width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.25);color:#fff;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">−</button>
+            <input type="number" id="e1qty_${i.id}" value="${displayVal}" min="${displayStep}" step="${displayStep}"
+              style="width:56px;border:none;background:transparent;font-size:.82rem;font-weight:800;text-align:center;color:#fff;font-family:monospace"
+              onchange="e1SetQtd(${i.id},this.value,${modoEmb})"
+              onblur="e1SetQtd(${i.id},this.value,${modoEmb})">
+            <span style="font-size:.62rem;color:rgba(255,255,255,.8);white-space:nowrap">${displayUnit}</span>
+            <button onclick="e1AjustarQtd(${i.id},1)"
+              style="width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.25);color:#fff;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+            <button onclick="e1RemoverItem(${i.id})"
+              style="width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              ${lc('x',10,'#fff')}
+            </button>
+          </div>
+          ${modoEmb && inCartEmbs ? `<div style="font-size:.6rem;color:var(--purple);font-family:monospace">${fmt(inCart.qtdSelecionada)} ${i.unit}</div>` : ''}
         </div>
       ` : `
         <div style="display:inline-flex;align-items:center;gap:8px">
           ${need > 0 ? `<div style="text-align:right">
-            <div style="font-size:.9rem;font-weight:800;color:var(--purple);font-family:monospace">${fmt(need)}</div>
-            <div style="font-size:.58rem;color:var(--muted)">${i.unit} sugerido</div>
+            <div style="font-size:.9rem;font-weight:800;color:var(--purple);font-family:monospace">
+              ${modoEmb && needEmbs ? needEmbs : fmt(need)}
+            </div>
+            <div style="font-size:.58rem;color:var(--muted)">
+              ${modoEmb ? `${i.unidCompra}(s)` : i.unit+' sugerido'}
+            </div>
+            ${modoEmb && needEmbs ? `<div style="font-size:.56rem;color:var(--muted);font-family:monospace">${fmt(need)} ${i.unit}</div>` : ''}
           </div>` : ''}
           <button onclick="e1AddItem(${i.id})"
             style="width:30px;height:30px;border-radius:50%;border:none;background:var(--purple);
@@ -462,15 +539,22 @@ function _e1RenderCarrinho() {
           </div>
         ` : carrinho.map(ci => {
           const item  = items.find(x => x.id === ci.itemId);
+          const modoEmb = window._e1ModoEmb;
           const nome  = item?.name || ci.nome || '?';
           const unid  = item?.unit || ci.unidade || '';
           const custo = ci.qtdSelecionada * (ci.precoUnitEstimado||0);
+          const embInfo = modoEmb && item ? fmtQtdEmb(item, ci.qtdSelecionada) : null;
           return `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;
             background:var(--surface);border:1px solid var(--border);border-radius:var(--r6);margin-bottom:4px">
             <div style="flex:1;min-width:0">
               <div style="font-size:.73rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nome}</div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1px">
-                <span style="font-size:.62rem;color:var(--purple);font-family:monospace;font-weight:700">${fmt(ci.qtdSelecionada)} ${unid}</span>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1px;gap:4px;flex-wrap:wrap">
+                ${embInfo ? `
+                  <span style="font-size:.64rem;font-weight:700;color:var(--purple)">${embInfo.embs} ${item.unidCompra}</span>
+                  <span style="font-size:.58rem;color:var(--muted);font-family:monospace">${fmt(ci.qtdSelecionada)} ${unid}</span>
+                ` : `
+                  <span style="font-size:.62rem;color:var(--purple);font-family:monospace;font-weight:700">${fmt(ci.qtdSelecionada)} ${unid}</span>
+                `}
                 ${custo > 0 ? `<span style="font-size:.6rem;color:var(--muted);font-family:monospace">R$${fmt(custo)}</span>` : ''}
               </div>
             </div>
@@ -532,25 +616,45 @@ function e1AjustarQtd(itemId, delta) {
   const ci   = _listaAtual.itens.find(x => x.itemId === itemId);
   const item = items.find(i => i.id === itemId);
   if (!ci || !item) return;
-  const step = Math.max(0.1, Math.round((item.min||1) * 0.1 * 10) / 10);
-  ci.qtdSelecionada = Math.max(0.001, parseFloat((ci.qtdSelecionada + delta * step).toFixed(3)));
+
+  const modoEmb = window._e1ModoEmb && item.unidCompra && item.qtdEmb > 0;
+  let nova;
+
+  if (modoEmb) {
+    // Incrementa/decrementa 1 embalagem de cada vez
+    const embAtual = Math.round(ci.qtdSelecionada / item.qtdEmb);
+    const novaEmb  = Math.max(1, embAtual + delta);
+    nova = parseFloat((novaEmb * item.qtdEmb).toFixed(3));
+  } else {
+    const step = Math.max(0.1, Math.round((item.min||1) * 0.1 * 10) / 10);
+    nova = Math.max(0.001, parseFloat((ci.qtdSelecionada + delta * step).toFixed(3)));
+  }
+
+  ci.qtdSelecionada = nova;
   _recalcEstimativa();
   saveListas();
-  // Atualiza só o input de quantidade e o carrinho
+
+  // Atualiza só o input de quantidade
   const inp = document.getElementById(`e1qty_${itemId}`);
-  if (inp) inp.value = ci.qtdSelecionada;
+  if (inp) {
+    inp.value = modoEmb ? toEmb(item, nova) : nova;
+  }
   _e1RenderCarrinho();
 }
 
-function e1SetQtd(itemId, val) {
-  const ci = _listaAtual.itens.find(x => x.itemId === itemId);
+function e1SetQtd(itemId, val, modoEmb) {
+  const ci   = _listaAtual.itens.find(x => x.itemId === itemId);
   if (!ci) return;
-  const v = parseFloat(val);
+  const item = items.find(i => i.id === itemId);
+  let v = parseFloat(val);
   if (isNaN(v) || v <= 0) return;
+  // Se estiver em modo embalagem, converte para unidade base
+  if (modoEmb && item?.qtdEmb > 0) {
+    v = parseFloat((v * item.qtdEmb).toFixed(3));
+  }
   ci.qtdSelecionada = parseFloat(v.toFixed(3));
   _recalcEstimativa();
   saveListas();
-  // Só atualiza o carrinho — o input já tem o valor correto
   _e1RenderCarrinho();
 }
 
@@ -1203,53 +1307,80 @@ function avancarParaAprovacao() {
 // ══════════════════════════════════════════════════════════════
 function _renderEtapa2Cotacao() {
   const l = _listaAtual;
-  const itensForn       = l.itens.filter(i => i.tipoCompra!=='presencial');
-  const itensPresencial = l.itens.filter(i => i.tipoCompra==='presencial');
-  const totalGeral      = l.itens.reduce((s,i)=>s+(i.qtdAprovada??i.qtdSelecionada)*(i.precoUnitFinal||i.precoUnitEstimado||0),0);
-  const pendentes       = l.itens.filter(i=>i.aprovado===null).length;
-  const aprovados       = l.itens.filter(i=>i.aprovado===true).length;
-  const reprovados      = l.itens.filter(i=>i.aprovado===false).length;
-  const todoRespondido  = pendentes===0;
-  const apWa = l.aprovadorWa ? `https://wa.me/55${l.aprovadorWa.replace(/\D/g,'')}?text=${encodeURIComponent(`Lista ${l.codigo} aguardando sua aprovação no sistema Vai Ter Pizza!`)}` : null;
+  l.itens.forEach(i => { if (!i.cotacoes) i.cotacoes = []; });
+
+  const prazoHtml = l.prazoCotacao ? `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--yellow-light);
+      border:1.5px solid var(--yellow);border-radius:var(--r8);font-size:.76rem;margin-bottom:14px">
+      ${lc('clock',14,'var(--orange-dark)')}
+      <span>Prazo: <strong>${fmtDT(l.prazoCotacao)}</strong></span>
+      <span id="timer1" style="font-weight:800;color:var(--orange-dark);margin-left:4px"></span>
+      <button onclick="abrirPrazoCotacao()"
+        style="margin-left:auto;background:none;border:1px solid var(--yellow);border-radius:var(--r6);
+        padding:2px 8px;font-size:.68rem;color:var(--orange-dark);cursor:pointer">
+        ${lc('edit-2',11,'currentColor')} Alterar
+      </button>
+    </div>` : '';
 
   document.getElementById('comprasContent').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px">
       <div>
-        <h3 style="font-size:.96rem;font-weight:800;margin-bottom:3px">${lc('check-circle',14,'var(--green)')} Aprovação · ${l.codigo}</h3>
-        <div style="font-size:.71rem;color:var(--muted)">${l.aprovadorNome?`Aprovador: <strong>${l.aprovadorNome}</strong>`:'Revise e aprove cada item'}</div>
+        <h3 style="font-size:.96rem;font-weight:800;margin-bottom:3px">
+          ${lc('tag',14,'var(--purple)')} Cotação · ${l.codigo}
+        </h3>
+        <div style="font-size:.71rem;color:var(--muted)">${l.itens.length} itens · R$${fmt(l.valorEstimado)} estimado</div>
       </div>
-      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-outline btn-sm" onclick="_renderEtapa1()">${lc('arrow-left',13)} Voltar</button>
-        <button class="btn btn-outline btn-sm" onclick="abrirConfigAprovador()">${lc('user',13)} Aprovador</button>
-        ${apWa?`<a href="${apWa}" target="_blank" class="btn btn-wa btn-sm">${lc('message-circle',13,'#fff')} Notificar</a>`:''}
-        <button class="btn btn-red btn-sm" onclick="reprovarLista()">${lc('x',12)} Reprovar tudo</button>
-        <button class="btn btn-primary btn-sm" onclick="aprovarLista()" ${!todoRespondido?'disabled style="opacity:.5;cursor:not-allowed"':''}>
-          ${lc('check-circle',13,'#fff')} Aprovar lista
-        </button>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px">
-      <div style="background:var(--purple-xlight);border:1.5px solid var(--purple-light);border-radius:var(--r10);padding:10px 14px;text-align:center">
-        <div style="font-size:1.05rem;font-weight:800;color:var(--purple)">R$${fmt(totalGeral)}</div>
-        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">Total</div>
-      </div>
-      <div style="background:var(--green-light);border:1.5px solid var(--green);border-radius:var(--r10);padding:10px 14px;text-align:center">
-        <div style="font-size:1.05rem;font-weight:800;color:var(--green)">${aprovados}</div>
-        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">Aprovados</div>
-      </div>
-      <div style="background:var(--red-light);border:1.5px solid var(--red);border-radius:var(--r10);padding:10px 14px;text-align:center">
-        <div style="font-size:1.05rem;font-weight:800;color:var(--red)">${reprovados}</div>
-        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">Reprovados</div>
-      </div>
-      <div style="background:var(--surface2);border:1.5px solid ${pendentes>0?'var(--yellow)':'var(--border)'};border-radius:var(--r10);padding:10px 14px;text-align:center">
-        <div style="font-size:1.05rem;font-weight:800;color:${pendentes>0?'var(--orange-dark)':'var(--green)'}">${pendentes}</div>
-        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase">Pendentes</div>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="_renderEtapa1()">${lc('arrow-left',13)} Carrinho</button>
+        ${(()=>{const pills=[];['montagem','cotacao','cotacao_encerrada'].forEach(s=>{const st=STATUS_ETAPA[s];const isActive=l.status===s;pills.push('<button onclick="setStatusLista(\'' +s+ '\')" style="padding:4px 10px;border-radius:20px;font-size:.68rem;font-weight:600;border:1.5px solid '+( isActive?st.color:'var(--border)')+';background:'+(isActive?st.bg:'var(--surface)')+';color:'+(isActive?st.color:'var(--muted)')+';cursor:pointer">'+st.label+'</button>');});return pills.join('');})()}
+        <div style="width:1px;height:20px;background:var(--border)"></div>
+        <button class="btn btn-outline btn-sm" onclick="abrirPrazoCotacao()">${lc('clock',13,'currentColor')} Prazo</button>
+        <button class="btn btn-wa btn-sm" onclick="enviarTodasCotacoesWA()">${lc('message-circle',13,'#fff')} Cotar WA</button>
       </div>
     </div>
-    ${!todoRespondido?`<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--yellow-light);border:1.5px solid var(--yellow);border-radius:var(--r8);margin-bottom:14px;font-size:.74rem;color:var(--orange-dark);font-weight:600">${lc('alert-triangle',14,'var(--yellow)')} Responda todos os itens para habilitar a aprovação</div>`:''}
-    ${itensForn.length?`<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">${lc('building-2',12,'var(--muted)')} Compras via Fornecedor</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">${itensForn.map(i=>_cardAprovacaoItem(i,false)).join('')}</div>`:''}
-    ${itensPresencial.length?`<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:8px">${lc('shopping-cart',12,'var(--muted)')} Compra Presencial</div><div style="background:var(--orange-light);border:1.5px solid var(--border);border-radius:var(--r8);padding:9px 12px;margin-bottom:8px;font-size:.72rem;color:var(--orange-dark)">${lc('info',12,'var(--orange-dark)')} Itens sem fornecedor — aprovação por orçamento máximo.</div><div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">${itensPresencial.map(i=>_cardAprovacaoItem(i,true)).join('')}</div>`:''}`;
+
+    \${prazoHtml}
+
+    <div class="card" style="margin-bottom:16px;overflow:hidden">
+      <div class="tbl-wrap" style="border:none">
+        <table>
+          <thead><tr>
+            <th style="min-width:180px">Item</th>
+            <th class="c" style="width:100px">Qtd</th>
+            <th class="c" style="width:48px">Un.</th>
+            <th class="r" style="width:110px">Estimado</th>
+            <th style="min-width:220px">Fornecedores / Cotações</th>
+            <th class="c" style="width:32px"></th>
+          </tr></thead>
+          <tbody id="cotacaoBody">
+            \${l.itens.map(i => _rowsItem(i)).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--purple-xlight)">
+              <td colspan="3" style="padding:10px 14px;font-weight:700;font-size:.82rem">Total estimado</td>
+              <td class="r" style="padding:10px 14px;font-weight:800;font-size:.9rem;color:var(--purple)">R$ \${fmt(l.valorEstimado)}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Observações gerais</label>
+      <textarea class="inp" rows="2" placeholder="Condições de pagamento, urgência..."
+        onchange="setObsLista(this.value)">\${l.observacoes||''}</textarea>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn btn-primary" onclick="avancarParaAprovacao()" style="padding:11px 28px;font-size:.86rem">
+        Enviar para aprovação ${lc('arrow-right',14,'#fff')}
+      </button>
+    </div>`;
+
+  if (l.prazoCotacao) _startTimer('timer1', l.prazoCotacao);
 }
+
 
 function _cardAprovacaoItem(i, isPresencial) {
   const sup=suppliers.find(s=>s.id===i.fornecedorId);
