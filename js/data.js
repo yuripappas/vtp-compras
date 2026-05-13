@@ -27,9 +27,11 @@ let items = JSON.parse(localStorage.getItem('vtp_items') || 'null') || [
 
 let suppliers    = JSON.parse(localStorage.getItem('vtp_suppliers')  || '[]');
 let users        = JSON.parse(localStorage.getItem('vtp_users')      || 'null') || [
-  { id:1, name:'Yuri Pappas', email:'gerente@vaiterpizza.com',    role:'gerente',    active:true },
-  { id:2, name:'Ana Silva',   email:'supervisor@vaiterpizza.com', role:'supervisor', active:true },
-  { id:3, name:'Carlos Lima', email:'comprador@vaiterpizza.com',  role:'comprador',  active:true },
+  { id:1, name:'Yuri Pappas',   email:'gerente@vaiterpizza.com',      role:'gerente',     active:true },
+  { id:2, name:'Ana Silva',     email:'supervisor@vaiterpizza.com',   role:'supervisor',  active:true },
+  { id:3, name:'Carlos Lima',   email:'comprador@vaiterpizza.com',    role:'comprador',   active:true },
+  { id:4, name:'João Pizzaiolo',email:'joao@vaiterpizza.com',         role:'funcionario', active:true, funcao:'pizzaiolo' },
+  { id:5, name:'Maria Atend.',  email:'maria@vaiterpizza.com',        role:'funcionario', active:true, funcao:'atendimento' },
 ];
 let ordens       = JSON.parse(localStorage.getItem('vtp_ordens')     || '[]');
 
@@ -157,15 +159,19 @@ const saveSab = () => localStorage.setItem('vtp_sabores',  JSON.stringify(sabore
 const PERMS = {
   gerente: {
     label: '${lc("crown",14,"var(--yellow)")} Gerente', color: '#6B21D4', bg: '#EDE9FE',
-    perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios','Gerenciar usuários','Configurações']
+    perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios','Gerenciar usuários','Configurações','Checklist']
   },
   supervisor: {
     label: '${lc("key",14,"currentColor")} Supervisor', color: '#D97706', bg: '#FEF3C7',
-    perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios']
+    perms: ['Ver Dashboard','Estoque','Pré-produção','Desperdício','Compras','Aprovação de compras','Fornecedores','Relatórios','Checklist']
   },
   comprador: {
     label: '${lc("shopping-cart",14,"currentColor")} Comprador', color: '#16A34A', bg: '#DCFCE7',
-    perms: ['Ver Dashboard','Estoque','Pré-produção','Compras','Fornecedores']
+    perms: ['Ver Dashboard','Estoque','Pré-produção','Compras','Fornecedores','Checklist']
+  },
+  funcionario: {
+    label: '${lc("user",14,"currentColor")} Funcionário', color: '#3B82F6', bg: '#EFF6FF',
+    perms: ['Checklist']
   },
 };
 

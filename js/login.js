@@ -8,7 +8,7 @@
 // ══════════════════════════════════════════════════════════════
 
 const MODULE_PERMISSIONS = {
-  dashboard:     ['gerente', 'supervisor', 'comprador'],
+  dashboard:     ['gerente', 'supervisor', 'comprador', 'funcionario'],
   estoque:       ['gerente', 'supervisor', 'comprador'],
   preproducao:   ['gerente', 'supervisor', 'comprador'],
   desperdicio:   ['gerente', 'supervisor'],
@@ -18,6 +18,7 @@ const MODULE_PERMISSIONS = {
   configuracoes: ['gerente'],
   relatorios:    ['gerente', 'supervisor'],
   usuarios:      ['gerente'],
+  checklist:     ['gerente', 'supervisor', 'comprador', 'funcionario'],
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -92,7 +93,13 @@ function doLogin() {
   setSession(user);
   applyPermissions(user);
   showApp();
-  renderDashboard();
+
+  // Funcionários vão direto para o checklist
+  if (user.role === 'funcionario') {
+    goModule('checklist');
+  } else {
+    renderDashboard();
+  }
 
   // Atualiza nome na sidebar
   const sbName = document.getElementById('sbUserName');

@@ -5,31 +5,81 @@
  */
 
 let _estFiltro   = { search: '', cat: '', status: 'all' };
-let _contagem    = {}; // { itemId: qtyFisico } — contagem em andamento
+let _contagem    = {}; // { itemId: qtyFisico }
 let _contagemAtiva = false;
+let _estTab      = 'contagem'; // 'contagem' | 'movimentacoes'
 
-// Histórico de contagens salvo no localStorage
+// Storage de movimentações
+const _getMov    = () => JSON.parse(localStorage.getItem('vtp_movimentacoes') || '[]');
+const _saveMov   = m  => localStorage.setItem('vtp_movimentacoes', JSON.stringify(m));
 const _getHistContagens = () => JSON.parse(localStorage.getItem('vtp_hist_contagens') || '[]');
 const _saveHistContagens = h => localStorage.setItem('vtp_hist_contagens', JSON.stringify(h));
 
+// Tipos de movimentação
+const MOV_TIPOS = {
+  entrada_compra:   { label: 'Entrada — Compra',         icon: 'arrow-down-circle', cor: 'var(--green)',       bg: 'var(--green-light)'  },
+  entrada_ajuste:   { label: 'Entrada — Ajuste manual',  icon: 'plus-circle',       cor: 'var(--purple)',      bg: 'var(--purple-xlight)'},
+  saida_venda:      { label: 'Saída — Venda (auto)',      icon: 'shopping-bag',      cor: 'var(--orange-dark)', bg: 'var(--orange-light)' },
+  saida_producao:   { label: 'Saída — Produção interna', icon: 'chef-hat',          cor: 'var(--yellow)',      bg: 'var(--yellow-light)' },
+  saida_ajuste:     { label: 'Saída — Ajuste manual',    icon: 'minus-circle',      cor: 'var(--red)',         bg: 'var(--red-light)'    },
+  saida_perda:      { label: 'Saída — Perda/Desperdício',icon: 'trash-2',           cor: 'var(--red)',         bg: 'var(--red-light)'    },
+  importacao_cw:    { label: 'Importação Cardápio Web',  icon: 'upload',            cor: 'var(--purple)',      bg: 'var(--purple-xlight)'},
+};
+
 // ══════════════════════════════════════════════════════════════
-// RENDER PRINCIPAL
+// RENDER PRINCIPAL + TABS
 // ══════════════════════════════════════════════════════════════
 function renderEstoque() {
+  _atualizarEstTabs();
+  if (_estTab === 'movimentacoes') {
+    _renderMovimentacoes();
+  } else {
+    _renderContagemTab();
+  }
+  updatePrepBadge();
+}
+
+function setEstTab(tab) {
+  _estTab = tab;
+  _atualizarEstTabs();
+  if (tab === 'movimentacoes') {
+    document.getElementById('estPanelContagem').style.display = 'none';
+    document.getElementById('estPanelMovimentacoes').style.display = '';
+    _renderMovimentacoes();
+  } else {
+    document.getElementById('estPanelContagem').style.display = '';
+    document.getElementById('estPanelMovimentacoes').style.display = 'none';
+    _renderContagemTab();
+  }
+}
+
+function _atualizarEstTabs() {
+  const tabs = ['contagem','movimentacoes'];
+  tabs.forEach(t => {
+    const el = document.getElementById(`estTab-${t}`);
+    if (!el) return;
+    const active = _estTab === t;
+    el.style.borderBottomColor = active ? 'var(--purple)' : 'transparent';
+    el.style.color = active ? 'var(--purple)' : 'var(--muted)';
+    el.style.fontWeight = active ? '700' : '500';
+  });
+  // Botão de importar: visível só na aba contagem
+  const btnImport = document.getElementById('estBtnImport');
+  if (btnImport) btnImport.style.display = _estTab === 'contagem' ? 'flex' : 'none';
+}
+
+function _renderContagemTab() {
   const insumos = items.filter(i => !i.isProd);
   const cats    = [...new Set(insumos.map(i => i.cat))].sort();
-
-  const catEl = document.getElementById('estCatFil');
+  const catEl   = document.getElementById('estCatFil');
   if (catEl) {
     const cur = catEl.value;
     catEl.innerHTML = '<option value="">Todas categorias</option>' +
       cats.map(c => `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
   }
-
   _renderEstKpis(insumos);
   _renderFiltrosBtns();
   _renderEstoqueTabela(insumos);
-  updatePrepBadge();
 }
 
 // ── KPIs ──────────────────────────────────────────────────────
@@ -655,6 +705,9 @@ function parseCSV(file) {
 }
 
 function confirmImport() {
+  // Registra movimentações antes de alterar os itens
+  registrarImportacaoCW(importData);
+
   importData.forEach(d => {
     const item = items.find(i => i.id === d.id);
     if (!item) return;
@@ -679,3 +732,481 @@ function iniciarCompras()      { goModule('compras'); }
 function updateEstSelCount()   {}
 function selectEstByStatus()   {}
 function toggleEstAll()        {}
+
+// ══════════════════════════════════════════════════════════════
+// MÓDULO MOVIMENTAÇÕES
+// ══════════════════════════════════════════════════════════════
+
+// Gera dados simulados realistas na primeira vez
+function _garantirMovSimuladas() {
+  let movs = _getMov();
+  if (movs.length > 0) return;
+
+  const now   = new Date();
+  const insumos = items.filter(i => !i.isProd).slice(0, 20);
+  const nomes = insumos.map(i => ({ id:i.id, name:i.name, unit:i.unit, cat:i.cat }));
+  const sim   = [];
+  let id = 1;
+
+  // Simula 4 semanas de movimentações
+  for (let semana = 3; semana >= 0; semana--) {
+    const baseDate = new Date(now);
+    baseDate.setDate(baseDate.getDate() - semana * 7);
+
+    // Importação do CW (vendas semanais) — saídas automáticas
+    const cwDate = new Date(baseDate);
+    cwDate.setDate(cwDate.getDate() - 1);
+    nomes.forEach(ins => {
+      const qtd = parseFloat((Math.random() * 15 + 2).toFixed(3));
+      sim.push({
+        id: id++,
+        tipo: 'saida_venda',
+        itemId: ins.id,
+        itemName: ins.name,
+        itemUnit: ins.unit,
+        itemCat: ins.cat,
+        qty: qtd,
+        sinal: -1,
+        data: cwDate.toISOString(),
+        origem: 'importacao_cw',
+        descricao: `Saída automática CW — semana ${4-semana}`,
+        usuario: 'Sistema (CW)',
+        lote: `CW-SEM-${4-semana}-${semana+1}`,
+      });
+    });
+
+    // Entradas de compra
+    const compraDate = new Date(baseDate);
+    compraDate.setDate(compraDate.getDate() + 1);
+    nomes.slice(0, 8).forEach(ins => {
+      if (Math.random() > 0.5) return;
+      const qtd = parseFloat((Math.random() * 20 + 5).toFixed(3));
+      sim.push({
+        id: id++,
+        tipo: 'entrada_compra',
+        itemId: ins.id,
+        itemName: ins.name,
+        itemUnit: ins.unit,
+        itemCat: ins.cat,
+        qty: qtd,
+        sinal: 1,
+        data: compraDate.toISOString(),
+        origem: 'manual',
+        descricao: 'Entrada de compra registrada',
+        usuario: 'Yuri Pappas',
+        lote: `LC${String(100 + semana * 3).padStart(4,'0')}`,
+      });
+    });
+
+    // Saídas de produção interna
+    const prodDate = new Date(baseDate);
+    prodDate.setDate(prodDate.getDate() + 2);
+    nomes.slice(0, 5).forEach(ins => {
+      if (Math.random() > 0.4) return;
+      const qtd = parseFloat((Math.random() * 5 + 0.5).toFixed(3));
+      sim.push({
+        id: id++,
+        tipo: 'saida_producao',
+        itemId: ins.id,
+        itemName: ins.name,
+        itemUnit: ins.unit,
+        itemCat: ins.cat,
+        qty: qtd,
+        sinal: -1,
+        data: prodDate.toISOString(),
+        origem: 'manual',
+        descricao: 'Retirada para pré-produção',
+        usuario: 'Yuri Pappas',
+        lote: null,
+      });
+    });
+
+    // Ajuste esporádico
+    if (semana === 1) {
+      const ins = nomes[Math.floor(Math.random() * nomes.length)];
+      sim.push({
+        id: id++,
+        tipo: 'ajuste_manual',
+        itemId: ins.id,
+        itemName: ins.name,
+        itemUnit: ins.unit,
+        itemCat: ins.cat,
+        qty: 2.5,
+        sinal: -1,
+        data: baseDate.toISOString(),
+        origem: 'manual',
+        descricao: 'Ajuste de estoque — divergência contagem',
+        usuario: 'Yuri Pappas',
+        lote: null,
+      });
+    }
+  }
+
+  _saveMov(sim.sort((a,b) => new Date(b.data) - new Date(a.data)));
+}
+
+// Registra uma movimentação manualmente
+function registrarMovimentacao(tipo, itemId, qty, descricao, lote) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  const u    = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  const movs = _getMov();
+  const nova  = {
+    id:        Math.max(0, ...movs.map(m => m.id)) + 1,
+    tipo,
+    itemId:    item.id,
+    itemName:  item.name,
+    itemUnit:  item.unit,
+    itemCat:   item.cat,
+    qty:       Math.abs(qty),
+    sinal:     tipo.startsWith('entrada') ? 1 : -1,
+    data:      new Date().toISOString(),
+    origem:    'manual',
+    descricao: descricao || '',
+    usuario:   u?.name || 'Sistema',
+    lote:      lote || null,
+  };
+  movs.unshift(nova);
+  _saveMov(movs);
+  return nova;
+}
+
+// Registra movimentações em lote ao importar CSV do CW
+function registrarImportacaoCW(importData) {
+  const movs = _getMov();
+  const u    = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  const lote = `CW-${new Date().toISOString().slice(0,10)}`;
+  const maxId = Math.max(0, ...movs.map(m => m.id));
+
+  importData.forEach((d, idx) => {
+    const item = items.find(i => i.id === d.id);
+    if (!item) return;
+    const diff = d.newQty - d.oldQty;
+    if (Math.abs(diff) < 0.001) return;
+    movs.unshift({
+      id:       maxId + idx + 1,
+      tipo:     diff > 0 ? 'entrada_ajuste' : 'saida_ajuste',
+      itemId:   item.id,
+      itemName: item.name,
+      itemUnit: item.unit,
+      itemCat:  item.cat,
+      qty:      Math.abs(parseFloat(diff.toFixed(3))),
+      sinal:    diff > 0 ? 1 : -1,
+      data:     new Date().toISOString(),
+      origem:   'importacao_cw',
+      descricao:`Atualização via importação CSV do Cardápio Web`,
+      usuario:  u?.name || 'Sistema',
+      lote,
+    });
+  });
+  _saveMov(movs);
+}
+
+// ── Render da aba de Movimentações ───────────────────────────
+let _movFiltro = { search:'', tipo:'', itemId:'', de:'', ate:'', periodo:'semana' };
+
+function _renderMovimentacoes() {
+  _garantirMovSimuladas();
+  const el = document.getElementById('estPanelMovimentacoes');
+  if (!el) return;
+
+  const f    = _movFiltro;
+  let movs   = _getMov();
+  const now  = new Date();
+
+  // Filtro de período rápido
+  if (f.periodo !== 'todos') {
+    const dias = { dia:1, semana:7, quinzena:15, mes:30 }[f.periodo] || 7;
+    const limit = new Date(now); limit.setDate(limit.getDate() - dias);
+    movs = movs.filter(m => new Date(m.data) >= limit);
+  }
+  if (f.de)     movs = movs.filter(m => m.data.slice(0,10) >= f.de);
+  if (f.ate)    movs = movs.filter(m => m.data.slice(0,10) <= f.ate);
+  if (f.tipo)   movs = movs.filter(m => m.tipo === f.tipo);
+  if (f.search) movs = movs.filter(m => m.itemName.toLowerCase().includes(f.search.toLowerCase()));
+
+  // KPIs resumo do período filtrado
+  const totalEntradas = movs.filter(m=>m.sinal>0).reduce((s,m)=>s+m.qty,0);
+  const totalSaidas   = movs.filter(m=>m.sinal<0).reduce((s,m)=>s+m.qty,0);
+  const vendas        = movs.filter(m=>m.tipo==='saida_venda').reduce((s,m)=>s+m.qty,0);
+  const producao      = movs.filter(m=>m.tipo==='saida_producao').reduce((s,m)=>s+m.qty,0);
+
+  // Top insumos com mais saída no período
+  const saidasPorItem = {};
+  movs.filter(m=>m.sinal<0).forEach(m=>{
+    if (!saidasPorItem[m.itemName]) saidasPorItem[m.itemName] = { qty:0, unit:m.itemUnit };
+    saidasPorItem[m.itemName].qty += m.qty;
+  });
+  const topSaidas = Object.entries(saidasPorItem).sort((a,b)=>b[1].qty-a[1].qty).slice(0,5);
+
+  el.innerHTML = `
+    <div style="max-width:100%">
+
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h2 style="font-size:1rem;font-weight:800;margin-bottom:2px">Movimentações de Estoque</h2>
+          <div style="font-size:.72rem;color:var(--muted)">Entradas, saídas automáticas (CW) e manuais</div>
+        </div>
+        <button onclick="abrirModalMovManual()"
+          style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r8);
+          border:none;background:var(--purple);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer">
+          ${lc('plus',13,'#fff')} Registrar movimento
+        </button>
+      </div>
+
+      <!-- Período rápido -->
+      <div style="display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:.72rem;color:var(--muted);margin-right:4px">Período:</span>
+        ${['dia','semana','quinzena','mes','todos'].map(p => {
+          const labels = {dia:'Hoje',semana:'7 dias',quinzena:'15 dias',mes:'30 dias',todos:'Tudo'};
+          const active = f.periodo === p;
+          return `<button onclick="_movSetPeriodo('${p}')"
+            style="padding:5px 11px;border-radius:20px;font-size:.72rem;font-weight:600;cursor:pointer;
+            border:1.5px solid ${active?'var(--purple)':'var(--border)'};
+            background:${active?'var(--purple)':'var(--surface)'};
+            color:${active?'#fff':'var(--muted)'}">
+            ${labels[p]}
+          </button>`;
+        }).join('')}
+        <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+        <input type="date" value="${f.de}" onchange="_movFiltro.de=this.value;_movFiltro.periodo='todos';_renderMovimentacoes()"
+          style="padding:4px 7px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.72rem;color:var(--muted)">
+        <span style="font-size:.72rem;color:var(--muted)">até</span>
+        <input type="date" value="${f.ate}" onchange="_movFiltro.ate=this.value;_movFiltro.periodo='todos';_renderMovimentacoes()"
+          style="padding:4px 7px;border:1.5px solid var(--border);border-radius:var(--r6);font-size:.72rem;color:var(--muted)">
+      </div>
+
+      <!-- KPIs do período -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:18px">
+        <div style="background:var(--green-light);border:1.5px solid var(--green);border-radius:var(--r10);padding:11px 14px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${lc('arrow-down-circle',12,'var(--green)')}<span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--green)">Entradas</span></div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--green)">${movs.filter(m=>m.sinal>0).length} mov.</div>
+          <div style="font-size:.62rem;color:var(--muted)">no período</div>
+        </div>
+        <div style="background:var(--orange-light);border:1.5px solid var(--orange-dark)22;border-radius:var(--r10);padding:11px 14px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${lc('shopping-bag',12,'var(--orange-dark)')}<span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--orange-dark)">Vendas (auto)</span></div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--orange-dark)">${movs.filter(m=>m.tipo==='saida_venda').length} mov.</div>
+          <div style="font-size:.62rem;color:var(--muted)">débito automático CW</div>
+        </div>
+        <div style="background:var(--yellow-light);border:1.5px solid var(--yellow);border-radius:var(--r10);padding:11px 14px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${lc('chef-hat',12,'var(--yellow)')}<span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--yellow)">Produção</span></div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--orange-dark)">${movs.filter(m=>m.tipo==='saida_producao').length} mov.</div>
+          <div style="font-size:.62rem;color:var(--muted)">retiradas internas</div>
+        </div>
+        <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r10);padding:11px 14px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">${lc('activity',12,'var(--purple)')}<span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--purple)">Total movs.</span></div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--purple)">${movs.length}</div>
+          <div style="font-size:.62rem;color:var(--muted)">no período selecionado</div>
+        </div>
+      </div>
+
+      <!-- Grid: tabela + sidebar com top consumo -->
+      <div style="display:grid;grid-template-columns:1fr 240px;gap:16px;align-items:flex-start">
+
+        <!-- Tabela de movimentações -->
+        <div>
+          <!-- Filtros da tabela -->
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+            <input class="inp" style="flex:1;min-width:160px;max-width:240px;padding:6px 10px;font-size:.76rem"
+              placeholder="Buscar insumo..." value="${f.search}"
+              oninput="_movFiltro.search=this.value;_renderMovimentacoes()">
+            <select class="inp" style="max-width:200px;padding:6px 8px;font-size:.76rem"
+              onchange="_movFiltro.tipo=this.value;_renderMovimentacoes()">
+              <option value="">Todos os tipos</option>
+              ${Object.entries(MOV_TIPOS).map(([k,v]) =>
+                `<option value="${k}" ${f.tipo===k?'selected':''}>${v.label}</option>`
+              ).join('')}
+            </select>
+          </div>
+
+          <div class="card" style="overflow:hidden">
+            ${movs.length === 0 ? `
+              <div class="empty" style="padding:40px">
+                ${lc('activity',24,'var(--muted)')}
+                <div style="margin-top:8px;font-size:.8rem">Nenhuma movimentação encontrada</div>
+              </div>
+            ` : `
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;min-width:580px">
+                <thead><tr style="background:var(--surface2)">
+                  <th style="padding:8px 12px;text-align:left;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700;white-space:nowrap">Data/Hora</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Insumo</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Tipo</th>
+                  <th style="padding:8px 12px;text-align:right;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Qtd</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Descrição</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:700">Usuário</th>
+                </tr></thead>
+                <tbody>
+                  ${movs.slice(0,80).map((m,idx) => {
+                    const t   = MOV_TIPOS[m.tipo] || MOV_TIPOS['entrada_ajuste'];
+                    const sinal = m.sinal > 0 ? '+' : '−';
+                    const cor   = m.sinal > 0 ? 'var(--green)' : 'var(--orange-dark)';
+                    return `<tr style="border-top:1px solid var(--border);background:${idx%2===0?'var(--surface)':'var(--surface2)'}">
+                      <td style="padding:7px 12px;white-space:nowrap">
+                        <div style="font-size:.74rem;font-weight:600">${new Date(m.data).toLocaleDateString('pt-BR')}</div>
+                        <div style="font-size:.62rem;color:var(--muted)">${new Date(m.data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+                      </td>
+                      <td style="padding:7px 12px">
+                        <div style="font-size:.78rem;font-weight:600">${m.itemName}</div>
+                        <div style="font-size:.62rem;color:var(--muted)">${m.itemCat}</div>
+                      </td>
+                      <td style="padding:7px 12px">
+                        <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;font-size:.64rem;font-weight:600;
+                          background:${t.bg};color:${t.cor};white-space:nowrap">
+                          ${lc(t.icon,10,t.cor)} ${t.label}
+                        </span>
+                        ${m.lote ? `<div style="font-size:.58rem;color:var(--muted);margin-top:2px">${m.lote}</div>` : ''}
+                      </td>
+                      <td style="padding:7px 12px;text-align:right;white-space:nowrap">
+                        <span style="font-size:.84rem;font-weight:800;font-family:monospace;color:${cor}">${sinal}${fmt(m.qty)} ${m.itemUnit}</span>
+                      </td>
+                      <td style="padding:7px 12px;font-size:.72rem;color:var(--muted);max-width:200px">
+                        ${m.descricao || '—'}
+                      </td>
+                      <td style="padding:7px 12px;font-size:.72rem;color:var(--muted);white-space:nowrap">
+                        ${m.usuario}
+                      </td>
+                    </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+            ${movs.length > 80 ? `<div style="padding:8px 14px;font-size:.7rem;color:var(--muted);background:var(--surface2);border-top:1px solid var(--border)">Mostrando 80 de ${movs.length} movimentações. Use filtros para refinar.</div>` : ''}`}
+          </div>
+        </div>
+
+        <!-- Sidebar: resumo por insumo -->
+        <div style="position:sticky;top:20px;display:flex;flex-direction:column;gap:12px">
+          <div class="card" style="overflow:hidden">
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)">
+              <div style="font-size:.74rem;font-weight:700">${lc('trending-down',13,'var(--orange-dark)')} Top consumo</div>
+              <div style="font-size:.62rem;color:var(--muted)">mais saídas no período</div>
+            </div>
+            ${topSaidas.length === 0 ? `<div style="padding:14px;font-size:.72rem;color:var(--muted);text-align:center">Sem dados</div>` :
+              topSaidas.map(([nome,d],idx) => `
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border)">
+                  <div style="width:18px;height:18px;border-radius:50%;background:${idx===0?'var(--orange-dark)':'var(--surface2)'};
+                    color:${idx===0?'#fff':'var(--muted)'};font-size:.6rem;font-weight:800;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0">${idx+1}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</div>
+                    <div style="font-size:.62rem;color:var(--orange-dark);font-family:monospace;font-weight:700">−${fmt(d.qty)} ${d.unit}</div>
+                  </div>
+                </div>`).join('')}
+          </div>
+
+          <div class="card" style="overflow:hidden">
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)">
+              <div style="font-size:.74rem;font-weight:700">${lc('upload',13,'var(--purple)')} Importações CW</div>
+            </div>
+            ${(() => {
+              const cwMovs = _getMov().filter(m=>m.origem==='importacao_cw');
+              const lotes  = [...new Set(cwMovs.map(m=>m.lote).filter(Boolean))];
+              if (!lotes.length) return `<div style="padding:14px;font-size:.72rem;color:var(--muted);text-align:center">Nenhuma importação</div>`;
+              return lotes.slice(0,5).map(lote => {
+                const ltMovs = cwMovs.filter(m=>m.lote===lote);
+                const data   = ltMovs[0]?.data;
+                return `<div style="padding:7px 12px;border-bottom:1px solid var(--border)">
+                  <div style="font-size:.72rem;font-weight:600">${lote}</div>
+                  <div style="font-size:.62rem;color:var(--muted)">${data?new Date(data).toLocaleDateString('pt-BR'):''} · ${ltMovs.length} insumos</div>
+                </div>`;
+              }).join('');
+            })()}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function _movSetPeriodo(p) {
+  _movFiltro.periodo = p;
+  _movFiltro.de = '';
+  _movFiltro.ate = '';
+  _renderMovimentacoes();
+}
+
+// ── Modal de movimentação manual ──────────────────────────────
+function abrirModalMovManual() {
+  document.getElementById('popupMovManual')?.remove();
+  const insumos = items.filter(i => !i.isProd).sort((a,b)=>a.name.localeCompare(b.name));
+  const popup = document.createElement('div');
+  popup.id = 'popupMovManual';
+  popup.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px';
+  popup.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--r14);width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1.5px solid var(--border);background:var(--purple-xlight);border-radius:var(--r14) var(--r14) 0 0">
+        <div style="font-size:.92rem;font-weight:800">${lc('activity',15,'var(--purple)')} Registrar Movimentação</div>
+        <button onclick="document.getElementById('popupMovManual').remove()" style="background:none;border:none;cursor:pointer;padding:4px">${lc('x',18,'var(--muted)')}</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+        <div class="field" style="margin:0">
+          <label>Tipo de movimentação *</label>
+          <select id="movTipo" class="inp" onchange="atualizarLabelMov()">
+            ${Object.entries(MOV_TIPOS).map(([k,v]) =>
+              `<option value="${k}">${v.label}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Insumo *</label>
+          <select id="movItemId" class="inp">
+            <option value="">Selecionar insumo...</option>
+            ${insumos.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('')}
+          </select>
+        </div>
+        <div class="f2" style="gap:10px;display:grid;grid-template-columns:1fr 1fr">
+          <div class="field" style="margin:0">
+            <label id="movQtdLabel">Quantidade *</label>
+            <input type="number" id="movQtd" class="inp" min="0.001" step="0.001" placeholder="0,000">
+          </div>
+          <div class="field" style="margin:0">
+            <label>Lote / Referência</label>
+            <input type="text" id="movLote" class="inp" placeholder="Ex: LC0012, NF-456...">
+          </div>
+        </div>
+        <div class="field" style="margin:0">
+          <label>Descrição / Motivo</label>
+          <input type="text" id="movDesc" class="inp" placeholder="Ex: Retirada para preparo de massas">
+        </div>
+        <div id="movPreview" style="background:var(--surface2);border-radius:var(--r8);padding:10px 12px;font-size:.74rem;color:var(--muted);min-height:36px"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border)">
+        <button class="btn btn-outline" onclick="document.getElementById('popupMovManual').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarMovManual()">Registrar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(popup);
+  popup.addEventListener('click', e => { if(e.target===popup) popup.remove(); });
+  atualizarLabelMov();
+}
+
+function atualizarLabelMov() {
+  const tipo  = document.getElementById('movTipo')?.value;
+  const t     = MOV_TIPOS[tipo];
+  const label = document.getElementById('movQtdLabel');
+  const prev  = document.getElementById('movPreview');
+  if (label && t) {
+    label.textContent = `Quantidade (${t.sinal||'?'}) *`;
+  }
+  if (prev && t) {
+    prev.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;background:${t.bg};color:${t.cor};font-size:.72rem;font-weight:600">${lc(t.icon,11,t.cor)} ${t.label}</span>`;
+  }
+}
+
+function salvarMovManual() {
+  const tipo   = document.getElementById('movTipo')?.value;
+  const itemId = parseInt(document.getElementById('movItemId')?.value);
+  const qty    = parseFloat(document.getElementById('movQtd')?.value);
+  const desc   = document.getElementById('movDesc')?.value.trim();
+  const lote   = document.getElementById('movLote')?.value.trim();
+
+  if (!tipo)       { toast('Selecione o tipo', 'err'); return; }
+  if (!itemId)     { toast('Selecione o insumo', 'err'); return; }
+  if (!qty||qty<=0){ toast('Informe a quantidade', 'err'); return; }
+
+  registrarMovimentacao(tipo, itemId, qty, desc, lote||null);
+  document.getElementById('popupMovManual')?.remove();
+  _renderMovimentacoes();
+  toast('Movimentação registrada!');
+}

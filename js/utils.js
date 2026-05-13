@@ -41,15 +41,16 @@ function toggleSidebar() {
 
 const modInfo = {
   dashboard:      { title: 'Dashboard',             sub: 'Visão geral do sistema' },
-  estoque:        { title: 'Estoque',               sub: 'Contagem e atualização de quantidades' },
+  estoque:        { title: 'Estoque',               sub: 'Contagem e movimentações' },
   preproducao:    { title: 'Pré-produção',           sub: 'Ordens de produção interna' },
   desperdicio:    { title: 'Controle de Desperdício', sub: 'Monitore perdas e seu impacto financeiro' },
-  compras:        { title: 'Compras',               sub: 'Requisição · Cotação · Mapa · Ordem de Compra' },
+  compras:        { title: 'Compras',               sub: 'Carrinho · Cotação · Aprovação · OC · Recebimento' },
   cadastros:      { title: 'Cadastros',             sub: 'Insumos · Fornecedores · Pré-preparo' },
-  previsao:       { title: 'Previsão de Demanda', sub: 'Planejamento do dia · Massas · Fermento · Motoboys' },
+  previsao:       { title: 'Previsão de Demanda',   sub: 'Planejamento do dia · Massas · Fermento · Motoboys' },
   configuracoes:  { title: 'Configurações',         sub: 'WhatsApp da empresa · preferências do sistema' },
   relatorios:     { title: 'Relatórios',            sub: 'Histórico, análises e inteligência' },
   usuarios:       { title: 'Usuários & Permissões', sub: 'Gestão de acesso à plataforma' },
+  checklist:      { title: 'Checklist',             sub: 'Tarefas diárias · Controle de equipe' },
 };
 
 function goModule(mod) {
@@ -81,6 +82,7 @@ function goModule(mod) {
   else if (mod === 'configuracoes') renderConfiguracoes();
   else if (mod === 'relatorios') renderRelatorios();
   else if (mod === 'usuarios')   { setCfgTab('usuarios'); }
+  else if (mod === 'checklist')  renderChecklist();
 }
 
 function calcScore(price, delivery, payTerm, minP, maxP, minD, maxD) {
